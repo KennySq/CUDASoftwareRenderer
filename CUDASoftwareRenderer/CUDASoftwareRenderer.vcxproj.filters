@@ -27,6 +27,9 @@
     <ClCompile Include="src\CUDASoftwareRenderer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="src\Util.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CUDASoftwareRenderer.rc">
@@ -84,6 +87,10 @@
     <ClInclude Include="inc\Color.cuh">
       <Filter>CUDA 헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="inc\KernelCommandList.cuh">
+      <Filter>CUDA 헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\3DMath.cuh" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\Engine.cu">
@@ -107,5 +114,9 @@
     <CudaCompile Include="src\ResourceManager.cu">
       <Filter>CUDA 소스 파일</Filter>
     </CudaCompile>
+    <CudaCompile Include="src\KernelCommandList.cu">
+      <Filter>CUDA 소스 파일</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\3DMath.cu" />
   </ItemGroup>
 </Project>

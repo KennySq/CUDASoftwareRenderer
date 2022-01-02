@@ -17,6 +17,10 @@
 #include<memory>
 #include<vector>
 #include<string>
+#include<functional>
+#include<stdarg.h>
+#include<math.h>
+#include<cmath>
 
 #include<cuda.h>
 #include<device_functions.h>

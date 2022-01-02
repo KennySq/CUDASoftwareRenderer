@@ -5,8 +5,8 @@
 
 __device__ void* gGlobalMemory = nullptr;
 
-DeviceMemory::DeviceMemory(size_t initSize)
-	: mSize(initSize), mVirtual(nullptr), mOffset(0)
+DeviceMemory::DeviceMemory(long long initSize)
+	: mVirtual(nullptr), mOffset(0)
 {
 	
 	cudaDeviceSynchronize();
@@ -19,6 +19,7 @@ DeviceMemory::DeviceMemory(size_t initSize)
 
 	error = cudaGetDeviceProperties(&deviceInfo, deviceAddr);
 	CUDAError(error);
+	cudaDeviceSynchronize();
 
 	size_t requestSize = deviceInfo.totalGlobalMem / 2;
 
@@ -42,22 +43,12 @@ DeviceMemory::DeviceMemory(size_t initSize)
 	}
 
 	mVirtual = gGlobalMemory;
-	
+	mSize = requestSize;
 	return;
 }
 
-std::shared_ptr<DeviceEntity> DeviceMemory::Alloc(size_t size)
+DeviceMemory::~DeviceMemory()
 {
-	size_t ptr = reinterpret_cast<size_t>(mVirtual) + mOffset;
-
-	void* casted = reinterpret_cast<void*>(ptr);
-	std::shared_ptr<DeviceEntity> entity = std::make_shared<DeviceEntity>(casted, size);
-
-	MemoryBlock block = MemoryBlock(entity, mOffset);
-
-	mOffset += size;
-
-	mMemoryBlocks.push_back(block);
-
-	return entity;
+	cudaError_t error = cudaFree(mVirtual);
+	CUDAError(error);
 }

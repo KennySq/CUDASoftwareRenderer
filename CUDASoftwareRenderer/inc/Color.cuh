@@ -15,6 +15,11 @@ struct ColorRGBA
 	}
 
 	float r, g, b, a;
+
+	bool operator==(const ColorRGBA& right)
+	{
+		return r == right.r && g == right.g && b == right.b && a == right.a;
+	}
 };
 
 inline __device__ __host__ DWORD ConvertColorToDWORD(const ColorRGBA& color)

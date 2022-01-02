@@ -4,19 +4,33 @@
 struct DeviceMemory
 {
 public:
-	DeviceMemory(size_t initSize);
+	DeviceMemory(long long initSize);
+	~DeviceMemory();
 	
-	
-	std::shared_ptr<DeviceEntity> Alloc(size_t size);
+	void* Alloc(size_t size)
+	{
+		size_t ptr = reinterpret_cast<size_t>(mVirtual) + mOffset;
+
+		void* casted = reinterpret_cast<void*>(ptr);
+
+		MemoryBlock block = MemoryBlock(casted, mOffset);
+
+		mOffset += size;
+
+		mMemoryBlocks.push_back(block);
+
+		return casted;
+	}
+
 
 private:
 	struct MemoryBlock
 	{
-		MemoryBlock(std::shared_ptr<DeviceEntity> entity, size_t offset)
-			: Entity(entity), Offset(offset) {}
+		MemoryBlock(void* entity, size_t offset)
+			: Virtual(entity), Offset(offset) {}
 
 		size_t Offset;
-		std::shared_ptr<DeviceEntity> Entity;
+		void* Virtual;
 	};
 
 	void* mVirtual;

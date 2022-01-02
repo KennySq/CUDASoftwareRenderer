@@ -4,18 +4,20 @@
 #include"DeviceTexture.cuh"
 
 ResourceManager::ResourceManager()
-	: mMemory(std::make_unique<DeviceMemory>(-1))
+	: mMemory(std::make_shared<DeviceMemory>(-1))
 {
 }
 
 std::shared_ptr<DeviceTexture> ResourceManager::CreateTexture2D(unsigned int width, unsigned height)
 {
-	size_t byteSize = width * height * sizeof(DWORD);
+	size_t byteSize = (size_t)width * height * sizeof(DWORD);
 
-	std::shared_ptr<DeviceTexture> texture = std::static_pointer_cast<DeviceTexture, DeviceEntity>(mMemory->Alloc(byteSize));
-	
+	void* ptr = mMemory->Alloc(byteSize);
+
+	std::shared_ptr<DeviceTexture> texture = std::make_shared<DeviceTexture>(ptr, byteSize);
+
 	texture->mWidth = width;
-	texture->mHeight = height;
+	texture->mHeight;
 
 	return texture;
 }

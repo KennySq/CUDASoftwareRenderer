@@ -127,9 +127,10 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EntryPointSymbol>wWinMainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -153,6 +154,7 @@
   <ItemGroup>
     <ClCompile Include="src\CUDASoftwareRenderer.cpp" />
     <ClCompile Include="src\pch.cpp" />
+    <ClCompile Include="src\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CUDASoftwareRenderer.rc" />
@@ -162,15 +164,18 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\3DMath.cuh" />
     <ClInclude Include="inc\Color.cuh" />
     <ClInclude Include="inc\DeviceEntity.cuh" />
     <ClInclude Include="inc\DeviceMemory.cuh" />
     <ClInclude Include="inc\DeviceTexture.cuh" />
     <ClInclude Include="inc\DIB.cuh" />
     <ClInclude Include="inc\Engine.cuh" />
+    <ClInclude Include="inc\KernelCommandList.cuh" />
     <ClInclude Include="inc\Renderer.cuh" />
     <ClInclude Include="inc\ResourceManager.cuh" />
     <ClInclude Include="inc\Util.h" />
+    <CudaCompile Include="src\3DMath.cu" />
     <CudaCompile Include="src\DeviceEntity.cu" />
     <CudaCompile Include="src\DeviceMemory.cu" />
     <CudaCompile Include="src\DeviceTexture.cu" />
@@ -180,6 +185,7 @@
     <CudaCompile Include="src\Engine.cu">
       <FileType>Document</FileType>
     </CudaCompile>
+    <CudaCompile Include="src\KernelCommandList.cu" />
     <CudaCompile Include="src\Renderer.cu" />
     <CudaCompile Include="src\ResourceManager.cu" />
   </ItemGroup>

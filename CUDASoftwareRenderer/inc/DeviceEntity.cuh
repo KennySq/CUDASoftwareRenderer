@@ -4,10 +4,11 @@ struct DeviceEntity
 {
 	friend struct DeviceMemory;
 
-	DeviceEntity(void* virtualPtr, unsigned int size);
+	DeviceEntity(void* virtualPtr, size_t size);
+	virtual ~DeviceEntity();
 
 	void* GetVirtual() const { return mVirtual; }
 private:
 	void* mVirtual;
-	unsigned int mSize;
+	size_t mSize;
 };

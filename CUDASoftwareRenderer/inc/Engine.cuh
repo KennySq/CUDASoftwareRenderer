@@ -22,12 +22,10 @@ public:
 private:
 	std::shared_ptr<DIB> mDIB;
 	
-	std::unique_ptr<ResourceManager> mResources;
+	std::shared_ptr<ResourceManager> mResources;
 	std::unique_ptr<Renderer> mRenderer;
 
 	std::shared_ptr<DeviceTexture> mTexture;
-
-
 
 	HWND mHandle;
 };
