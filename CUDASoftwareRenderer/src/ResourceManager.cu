@@ -4,6 +4,7 @@
 #include"DeviceTexture.cuh"
 #include"DeviceBuffer.cuh"
 
+std::shared_ptr<ResourceManager> ResourceManager::mInstance = nullptr;
 ResourceManager::ResourceManager()
 	: mMemory(std::make_shared<DeviceMemory>(-1))
 {
