@@ -20,6 +20,31 @@ struct SampleVertex
 	FLOAT2 Texcoord;
 };
 
+struct VertexOutput
+{
+	__device__ __host__ VertexOutput()
+	{
+
+	}
+
+	__device__ __host__ VertexOutput(FLOAT4 position, FLOAT4 normal, FLOAT2 texcoord)
+		: Position(position), Normal(normal), Texcoord(texcoord)
+	{
+
+	}
+
+	__device__ __host__ VertexOutput(const VertexOutput& other)
+		: Position(other.Position), Normal(other.Normal), Texcoord(other.Texcoord)
+	{
+
+	}
+
+	FLOAT4 Position;
+	FLOAT4 Normal;
+	FLOAT2 Texcoord;
+
+};
+
 inline SampleVertex ConvertVertex(const Vertex& v)
 {
 	SampleVertex vertex;
