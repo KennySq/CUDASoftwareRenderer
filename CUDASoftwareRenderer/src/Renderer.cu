@@ -2,6 +2,7 @@
 #include"Renderer.cuh"
 #include"DIB.cuh"
 #include"DeviceTexture.cuh"
+#include"DeviceBuffer.cuh"
 #include"ResourceManager.cuh"
 #include"Geometry.cuh"
 #include"3DMath.cuh"
@@ -89,13 +90,6 @@ void Renderer::Start()
 
 	cudaError_t error = cudaMalloc(reinterpret_cast<void**>(&deviceDrawPoints), width * height * sizeof(Point2D));
 	CUDAError(error);
-
-	error = cudaMalloc(reinterpret_cast<void**>(&deviceTriangles), sizeof(Triangle2D) * mTriangleCount);
-	CUDAError(error);
-
-
-	error = cudaMemcpy(deviceTriangles, mRenderTriangles.data(), mRenderTriangles.size() * sizeof(Triangle2D), cudaMemcpyHostToDevice);
-	CUDAError(error);
 }
 
 void Renderer::Update()
@@ -154,26 +148,58 @@ __global__ void KernelDrawCallSetLine(DWORD* buffer, Renderer::Line2D* drawLines
 
 }
 
-__global__ void KernelTransformVertices(DWORD* buffer, SampleVertex* vertices, unsigned int* indices, unsigned int vertexCount, unsigned int indexCount, const FLOAT4X4& Transform, const FLOAT4X4& View, const FLOAT4X4& Projection)
+__global__ void KernelTransformVertices(SampleVertex* vertices, VertexOutput* output, unsigned int* indices, unsigned int vertexCount, unsigned int indexCount, FLOAT4X4 Transform, FLOAT4X4 View, FLOAT4X4 Projection)
 {
 	unsigned int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 	unsigned int index = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
-	unsigned int triIndex = index * 3;
+	unsigned int triThread = index * 3;
 
-	if (triIndex + 2 >= vertexCount)
+	if (triThread + 2 >= vertexCount)
 	{
 		return;
 	}
 
-	SampleVertex v0 = vertices[triIndex];
-	SampleVertex v1 = vertices[triIndex + 1];
-	SampleVertex v2 = vertices[triIndex + 2];
+	unsigned int triIndex0 = indices[triThread];
+	unsigned int triIndex1 = indices[triThread + 1];
+	unsigned int triIndex2 = indices[triThread + 2];
+
+	SampleVertex v0 = vertices[triIndex0];
+	SampleVertex v1 = vertices[triIndex1];
+	SampleVertex v2 = vertices[triIndex2];
 	
+	FLOAT4 position0 = FLOAT4(v0.Position.x, v0.Position.y, v0.Position.z, 1.0f);
+	FLOAT4 position1 = FLOAT4(v1.Position.x, v1.Position.y, v1.Position.z, 1.0f);
+	FLOAT4 position2 = FLOAT4(v2.Position.x, v2.Position.y, v2.Position.z, 1.0f);
+
+
+
+	position0 = Float4Multiply(position0, Transform);
+	position0 = Float4Multiply(position0, View);
+	position0 = Float4Multiply(position0, Projection);
+	
+	position1 = Float4Multiply(position1, Transform);
+	position1 = Float4Multiply(position1, View);
+	position1 = Float4Multiply(position1, Projection);
+	
+	position2 = Float4Multiply(position2, Transform);
+	position2 = Float4Multiply(position2, View);
+	position2 = Float4Multiply(position2, Projection);
+
+	FLOAT4 normal0 = FLOAT4(v0.Normal.x, v0.Normal.y, v0.Normal.z, 1.0f);
+	FLOAT4 normal1 = FLOAT4(v1.Normal.x, v1.Normal.y, v1.Normal.z, 1.0f);
+	FLOAT4 normal2 = FLOAT4(v2.Normal.x, v2.Normal.y, v2.Normal.z, 1.0f);
+
+	FLOAT2 texcoord0 = FLOAT2(v0.Texcoord.x, v0.Texcoord.y);
+	FLOAT2 texcoord1 = FLOAT2(v1.Texcoord.x, v1.Texcoord.y);
+	FLOAT2 texcoord2 = FLOAT2(v2.Texcoord.x, v2.Texcoord.y);
+
+	output[triIndex0] = VertexOutput(position0, normal0, texcoord0);
+	output[triIndex1] = VertexOutput(position1, normal1, texcoord1);
+	output[triIndex2] = VertexOutput(position2, normal2, texcoord2);
+
 	return;
 }
-
-
 
 __global__ void KernelDrawCallSetPixel(DWORD* buffer, Renderer::Point2D* drawPoints, unsigned int pixelCount, unsigned int width)
 {
@@ -215,7 +241,7 @@ void Renderer::DrawScreen()
 	cudaDeviceSynchronize();
 }
 
-void Renderer::DrawTriangles()
+void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::shared_ptr<DeviceBuffer> outputBuffer, std::shared_ptr<DeviceBuffer> indexBuffer, unsigned int vertexCount, unsigned int indexCount, const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection)
 {
 	unsigned int width = mCanvas->GetWidth();
 	unsigned int height = mCanvas->GetHeight();
@@ -226,7 +252,11 @@ void Renderer::DrawTriangles()
 	int left = mTriangleCount % 3;
 	dim3 grid = dim3((mTriangleCount / block.x) + left, 1,1);
 
-	//KernelDrawCallSetTriangle<<<grid, block>>>(CAST_PIXEL(buffer), mTriangleCount, deviceTriangles, width);
+	SampleVertex* sampleVertices = reinterpret_cast<SampleVertex*>(vertexBuffer->GetVirtual());
+	VertexOutput* outputVertices = reinterpret_cast<VertexOutput*>(outputBuffer->GetVirtual());
 
+	unsigned int* indices = reinterpret_cast<unsigned int*>(indexBuffer->GetVirtual());
+
+	KernelTransformVertices<<<grid,block>>>(sampleVertices, outputVertices, indices, vertexCount, mTriangleCount, FLOAT4X4::Identity(), view, projection);
 	cudaDeviceSynchronize();
 }

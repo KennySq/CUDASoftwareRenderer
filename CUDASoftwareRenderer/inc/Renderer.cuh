@@ -1,6 +1,7 @@
 #pragma once
 struct DIB;
 struct DeviceTexture;
+struct DeviceBuffer;
 struct ColorRGBA;
 struct ResourceManager;
 struct ColorRGBA;
@@ -96,13 +97,12 @@ public:
 	void Present();
 	
 	void DrawScreen();
-	void DrawTriangles();
+	void DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::shared_ptr<DeviceBuffer> outputBuffer, std::shared_ptr<DeviceBuffer> indexBuffer, unsigned int vertexCount, unsigned int indexCount, const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection);
 private:
-
 
 	std::shared_ptr<DIB> mCanvas;
 	std::shared_ptr<DeviceTexture> mBuffer;
-	
+
 	Point2D* mRenderPoints;
 	Line2D* mRenderLines;
 	std::vector<Triangle2D> mRenderTriangles;
