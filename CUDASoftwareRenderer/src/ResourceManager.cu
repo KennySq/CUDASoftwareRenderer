@@ -2,6 +2,7 @@
 #include"ResourceManager.cuh"
 #include"DeviceMemory.cuh"
 #include"DeviceTexture.cuh"
+#include"DeviceBuffer.cuh"
 
 ResourceManager::ResourceManager()
 	: mMemory(std::make_shared<DeviceMemory>(-1))
@@ -20,4 +21,21 @@ std::shared_ptr<DeviceTexture> ResourceManager::CreateTexture2D(unsigned int wid
 	texture->mHeight;
 
 	return texture;
+}
+
+std::shared_ptr<DeviceBuffer> ResourceManager::CreateBuffer(size_t stride, unsigned int count, void* subResource)
+{
+	size_t size = stride * count;
+	void* ptr = mMemory->Alloc(size);
+
+	std::shared_ptr<DeviceBuffer> buffer = std::make_shared<DeviceBuffer>(ptr, size);
+
+	buffer->mStride = stride;
+
+	if (subResource != nullptr)
+	{
+		cudaMemcpy(ptr, subResource, size, cudaMemcpyHostToDevice);
+	}
+
+	return buffer;
 }
