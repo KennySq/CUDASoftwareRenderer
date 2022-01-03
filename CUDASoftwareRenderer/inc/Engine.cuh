@@ -27,5 +27,8 @@ private:
 
 	std::shared_ptr<DeviceTexture> mTexture;
 
+	std::shared_ptr<DeviceBuffer> mVertexBuffer;
+	std::shared_ptr<DeviceBuffer> mIndexBuffer;
+
 	HWND mHandle;
 };
