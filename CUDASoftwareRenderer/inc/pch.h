@@ -26,4 +26,9 @@
 #include<device_functions.h>
 #include<device_launch_parameters.h>
 #include<cuda_runtime_api.h>
+
+#include<FbxLoader.h>
+
+#pragma comment(lib, "FbxLoader.lib")
+
 #endif //PCH_H
