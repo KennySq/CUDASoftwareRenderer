@@ -2,8 +2,8 @@
 #define CUDAError(error) if(error != NULL) { std::cout << cudaGetErrorString(error) << '\n'; }
 #define CAST_PIXEL(buffer) CastPixel(buffer)
 
-struct DIB;
-struct INT2;
+#include"DIB.cuh"
+#include"3DMath.cuh"
 
 __device__ __host__ inline DWORD* CastPixel(void* ptr)
 {
