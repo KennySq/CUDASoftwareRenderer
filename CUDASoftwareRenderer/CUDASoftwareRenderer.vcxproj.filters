@@ -90,7 +90,15 @@
     <ClInclude Include="inc\KernelCommandList.cuh">
       <Filter>CUDA 헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="inc\3DMath.cuh" />
+    <ClInclude Include="inc\DeviceBuffer.cuh">
+      <Filter>CUDA 헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\Geometry.cuh">
+      <Filter>CUDA 헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\3DMath.cuh">
+      <Filter>CUDA 헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\Engine.cu">
@@ -117,6 +125,12 @@
     <CudaCompile Include="src\KernelCommandList.cu">
       <Filter>CUDA 소스 파일</Filter>
     </CudaCompile>
-    <CudaCompile Include="src\3DMath.cu" />
+    <CudaCompile Include="src\DeviceBuffer.cu">
+      <Filter>CUDA 소스 파일</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\3DMath.cu">
+      <Filter>CUDA 소스 파일</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\Geometry.cu" />
   </ItemGroup>
 </Project>

@@ -79,8 +79,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4\include;$(ProjectDir)inc;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4\lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)inc;$(ProjectDir)FbxLoader\inc;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4\include;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)FbxLoader\lib\x64\Debug;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4\lib\x64;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2\lib\vs2019\x64\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -165,17 +165,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\3DMath.cuh" />
+    <ClInclude Include="inc\DeviceBuffer.cuh" />
     <ClInclude Include="inc\Color.cuh" />
     <ClInclude Include="inc\DeviceEntity.cuh" />
     <ClInclude Include="inc\DeviceMemory.cuh" />
     <ClInclude Include="inc\DeviceTexture.cuh" />
     <ClInclude Include="inc\DIB.cuh" />
     <ClInclude Include="inc\Engine.cuh" />
+    <ClInclude Include="inc\Geometry.cuh" />
     <ClInclude Include="inc\KernelCommandList.cuh" />
     <ClInclude Include="inc\Renderer.cuh" />
     <ClInclude Include="inc\ResourceManager.cuh" />
     <ClInclude Include="inc\Util.h" />
     <CudaCompile Include="src\3DMath.cu" />
+    <CudaCompile Include="src\DeviceBuffer.cu" />
     <CudaCompile Include="src\DeviceEntity.cu" />
     <CudaCompile Include="src\DeviceMemory.cu" />
     <CudaCompile Include="src\DeviceTexture.cu" />
@@ -185,6 +188,7 @@
     <CudaCompile Include="src\Engine.cu">
       <FileType>Document</FileType>
     </CudaCompile>
+    <CudaCompile Include="src\Geometry.cu" />
     <CudaCompile Include="src\KernelCommandList.cu" />
     <CudaCompile Include="src\Renderer.cu" />
     <CudaCompile Include="src\ResourceManager.cu" />
