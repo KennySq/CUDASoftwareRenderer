@@ -3,6 +3,8 @@
 #include"DIB.cuh"
 #include"DeviceTexture.cuh"
 #include"ResourceManager.cuh"
+#include"Geometry.cuh"
+#include"3DMath.cuh"
 #include"Util.h"
 
 __device__ Renderer::Point2D* deviceDrawPoints = nullptr;
@@ -27,6 +29,9 @@ Renderer::Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs
 	mBuffer = rs->CreateTexture2D(width, height);
 
 	mRenderPoints = new Point2D[width * height];
+	mPointCount = 0;
+	cudaError_t error = cudaMalloc(reinterpret_cast<void**>(&deviceDrawPoints), width * height * sizeof(Point2D));
+	CUDAError(error);
 
 	mRenderTriangles.resize(1024);
 
@@ -46,8 +51,24 @@ void Renderer::SetPixel(int x, int y, const ColorRGBA& color)
 		return;
 	}
 
-	unsigned int _x = (width - x) + 1;
-	unsigned int _y = (height - y) + 1;
+	unsigned int _x = (width / 2 - x) - 1;
+	unsigned int _y = (height / 2 - y) - 1;
+	mRenderPoints[mPointCount] = Point2D(INT2(_x, _y), color);
+
+	mPointCount++;
+}
+
+void Renderer::SetPixelNDC(float x, float y, const ColorRGBA& color)
+{
+	unsigned int width = mCanvas->GetWidth();
+	unsigned int height = mCanvas->GetHeight();
+	if (mPointCount > width * height)
+	{
+		return;
+	}
+
+	unsigned int _x = (width / 2 + (x * width)) - 1;
+	unsigned int _y = (height / 2 + (y * height)) - 1;
 	mRenderPoints[mPointCount] = Point2D(INT2(_x, _y), color);
 
 	mPointCount++;
@@ -93,7 +114,7 @@ void Renderer::Release()
 	mRenderPoints = nullptr;
 }
 
-void Renderer::ClearCanvas(ColorRGBA clearColor)
+void Renderer::ClearCanvas(const ColorRGBA& clearColor)
 {
 	unsigned int width = mCanvas->GetWidth();
 	unsigned int height = mCanvas->GetHeight();
@@ -103,7 +124,7 @@ void Renderer::ClearCanvas(ColorRGBA clearColor)
 	dim3 block = dim3(32, 18, 1);
 	dim3 grid = dim3(width / block.x, height / block.y, 1);
 
-	if (clearColor == ColorRGBA(0, 0, 0, 0))
+	if (ColorRGBA(0, 0, 0, 0) == clearColor)
 	{
 		return;
 	}
@@ -133,21 +154,26 @@ __global__ void KernelDrawCallSetLine(DWORD* buffer, Renderer::Line2D* drawLines
 
 }
 
-__global__ void KernelProcessGeometry(DWORD* buffer, Renderer::Triangle2D* drawTriangles, unsigned int triangleCount, unsigned int width)
+__global__ void KernelTransformVertices(DWORD* buffer, SampleVertex* vertices, unsigned int* indices, unsigned int vertexCount, unsigned int indexCount, const FLOAT4X4& Transform, const FLOAT4X4& View, const FLOAT4X4& Projection)
 {
 	unsigned int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 	unsigned int index = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
-	if (index >= triangleCount)
+	unsigned int triIndex = index * 3;
+
+	if (triIndex + 2 >= vertexCount)
 	{
 		return;
 	}
 
-	Renderer::Triangle2D tri = drawTriangles[index];
-
-
-
+	SampleVertex v0 = vertices[triIndex];
+	SampleVertex v1 = vertices[triIndex + 1];
+	SampleVertex v2 = vertices[triIndex + 2];
+	
+	return;
 }
+
+
 
 __global__ void KernelDrawCallSetPixel(DWORD* buffer, Renderer::Point2D* drawPoints, unsigned int pixelCount, unsigned int width)
 {
@@ -186,7 +212,6 @@ void Renderer::DrawScreen()
 
 	KernelDrawCallSetPixel << <grid, block >> > (CAST_PIXEL(buffer), deviceDrawPoints, width * height, width);
 
-	mPointCount = 0;
 	cudaDeviceSynchronize();
 }
 
@@ -201,7 +226,7 @@ void Renderer::DrawTriangles()
 	int left = mTriangleCount % 3;
 	dim3 grid = dim3((mTriangleCount / block.x) + left, 1,1);
 
-	KernelDrawCallSetTriangle<<<grid, block>>>(CAST_PIXEL(buffer), mTriangleCount, deviceTriangles, width);
+	//KernelDrawCallSetTriangle<<<grid, block>>>(CAST_PIXEL(buffer), mTriangleCount, deviceTriangles, width);
 
 	cudaDeviceSynchronize();
 }

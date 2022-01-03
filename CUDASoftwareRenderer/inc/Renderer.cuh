@@ -88,9 +88,10 @@ public:
 	void Render();
 	void Release();
 
-	void ClearCanvas(ColorRGBA clearColor);
+	void ClearCanvas(const ColorRGBA& clearColor);
 
 	void SetPixel(int x, int y, const ColorRGBA& color);
+	void SetPixelNDC(float x, float y, const ColorRGBA& color);
 	void SetTriangle(const Point2D& p0, const Point2D& p1, const Point2D& p2);
 	void Present();
 	
@@ -109,6 +110,4 @@ private:
 	unsigned int mPointCount;
 
 	unsigned int mTriangleCount;
-
-	eTriangleCountType mTriangleCountType;
 };
