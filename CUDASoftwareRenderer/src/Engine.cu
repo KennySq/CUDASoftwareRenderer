@@ -41,14 +41,9 @@ void Engine::Start()
 
 	mVertexBuffer = mResources->CreateBuffer(sizeof(SampleVertex), mVertexCount, vertices.data());
 	mIndexBuffer = mResources->CreateBuffer(sizeof(unsigned int), mIndexCount, sampleLoader.Indices.data());
-
-	mVertexOutput = mResources->CreateBuffer(sizeof(VertexOutput), mVertexCount);
-
 	Renderer::Point2D p0 = Renderer::Point2D(INT2(0, 0), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
 	Renderer::Point2D p1 = Renderer::Point2D(INT2(50, 0), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
 	Renderer::Point2D p2 = Renderer::Point2D(INT2(25, 50), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
-
-
 
 	// Math Test
 	FLOAT4X4 View = Float4x4ViewMatrix(0, 0, 0);
@@ -85,16 +80,11 @@ void Engine::Update(float delta)
 	//mRenderer->Present();
 
 	view._43 = -8.0f;
-	view._41 = 3.0f;
-	view._42 = 3.0f;
 
-	transform = Float4x4Multiply(transform, Float4x4RotationX(0.0016f));
-	//transform = Float4x4Transpose(transform);
+	transform = Float4x4Multiply(transform, Float4x4RotationY(0.0016f));
 
-	mRenderer->DrawTriangles(mVertexBuffer, mVertexOutput, mIndexBuffer, mVertexCount, mIndexCount, transform, view, Float4x4Transpose(projection));
+	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mVertexCount, mIndexCount, transform, view, Float4x4Transpose(projection));
 	mRenderer->OutText(0, 0, std::to_string(delta));
-
-
 }
 
 void Engine::Render(float delta)
