@@ -15,6 +15,8 @@ public:
 	void CopyBuffer(std::shared_ptr<DeviceTexture> virtualResource);
 	void Present();
 
+	HDC GetDC() const { return mMemoryDC; }
+
 private:
 	unsigned int mWidth;
 	unsigned int mHeight;
