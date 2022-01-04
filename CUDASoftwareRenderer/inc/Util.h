@@ -10,13 +10,19 @@ __device__ __host__ inline DWORD* CastPixel(void* ptr)
 	return reinterpret_cast<DWORD*>(ptr);
 }
 
-__device__ __host__ inline void AdjustPointToScreen(const std::shared_ptr<DIB> dib, INT2& point)
+__device__ __host__ inline void AdjustPointToScreen(INT2& point, unsigned int width, unsigned int height)
 {
-	unsigned int width = dib->GetWidth();
-	unsigned int height = dib->GetHeight();
-
 	point.x = (width - point.x) - 1;
 	point.y = (height - point.y) - 1;
 
 	return;
+}
+
+__device__ __host__ inline INT2 NDCToScreen(float x, float y, unsigned int width, unsigned int height)
+{
+	INT2 point(x * width, y * height);
+
+	AdjustPointToScreen(point, width, height);
+
+	return point;
 }
