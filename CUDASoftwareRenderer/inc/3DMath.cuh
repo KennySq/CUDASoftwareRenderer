@@ -11,6 +11,11 @@ struct INT2
 		return from.x + from.y < to.x + to.y ? from : to;
 	}
 
+	static  __device__ __host__ INT2 Max(const INT2& from, const INT2& to)
+	{
+		return from.x + from.y > to.x + to.y ? from : to;
+	}
+
 	__device__ __host__ inline float Length()
 	{
 		return sqrtf(x * x + y * y);
