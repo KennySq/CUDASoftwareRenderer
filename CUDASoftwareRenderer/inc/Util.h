@@ -22,7 +22,7 @@ __device__ __host__ inline INT2 NDCToScreen(float x, float y, unsigned int width
 {
 	INT2 point(x * width, y * height);
 
-	AdjustPointToScreen(point, width, height);
+	AdjustPointToScreen(point, width/2, height/2);
 
 	return point;
 }
