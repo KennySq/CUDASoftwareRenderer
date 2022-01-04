@@ -15,6 +15,8 @@ WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 HWND hWnd;
 
+double gFrametime = 0.0f;
+
 std::unique_ptr<Engine> gEngine;
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
@@ -52,6 +54,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     gEngine->Start();
 
+    double tStart = clock();
+    double tEnd = clock();
+    
+
     // 기본 메시지 루프입니다:
     while (msg.message != WM_QUIT)
     {
@@ -65,8 +71,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
         else
         {
-            gEngine->Update(.0f);
-            gEngine->Render(.0f);
+            tStart = clock();
+
+            gEngine->Update(gFrametime);
+            gEngine->Render(gFrametime);
+        
+            tEnd = clock();
+            gFrametime = (tEnd - tStart) / CLOCKS_PER_SEC;
         }
         
     }
@@ -158,6 +169,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
+
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
             EndPaint(hWnd, &ps);
         }
