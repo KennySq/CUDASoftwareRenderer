@@ -82,6 +82,11 @@ void Renderer::SetTriangle(const Point2D& p0, const Point2D& p1, const Point2D& 
 	return;
 }
 
+void Renderer::OutText(int x, int y, std::string str)
+{
+	TextOutA(mCanvas->GetDC(), x, y, str.c_str(), str.size());
+}
+
 void Renderer::Start()
 {
 
@@ -92,11 +97,12 @@ void Renderer::Start()
 	CUDAError(error);
 }
 
-void Renderer::Update()
+void Renderer::Update(float delta)
 {
+
 }
 
-void Renderer::Render()
+void Renderer::Render(float delta)
 {
 }
 
@@ -118,10 +124,10 @@ void Renderer::ClearCanvas(const ColorRGBA& clearColor)
 	dim3 block = dim3(32, 18, 1);
 	dim3 grid = dim3(width / block.x, height / block.y, 1);
 
-	if (ColorRGBA(0, 0, 0, 0) == clearColor)
-	{
-		return;
-	}
+	//if (ColorRGBA(0, 0, 0, 0) == clearColor)
+	//{
+	//	return;
+	//}
 
 	KernelClearBitmap<<<grid, block>>>(texture, width, height, clearColor);
 
@@ -134,26 +140,111 @@ void Renderer::Present()
 	mCanvas->Present();
 }
 
-inline __device__ void DeviceSetPixel(DWORD* buffer, unsigned int pointIndex, const ColorRGBA& color, unsigned int width)
+inline __device__ void DeviceSetPixel(DWORD* buffer, unsigned int pointIndex, const ColorRGBA& color)
 {
 	buffer[pointIndex] = ConvertColorToDWORD(color);
 }
 
-__global__ void KernelDrawCallSetLine(DWORD* buffer, Renderer::Line2D* drawLines)
+inline __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, unsigned int width, const ColorRGBA& color)
 {
-	unsigned int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-	unsigned int index = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
-	
+	INT2 from = p0;
+	INT2 to = p1;
+
+	auto sign = [](int dxy)
+	{
+		if (dxy < 0)
+		{
+			return -1;
+		}
+		else if (dxy > 0)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	};
+
+	int dx = to.x - from.x;
+	int dy = to.y - from.y;
+
+	int sx = sign(dx);
+	int sy = sign(dy);
+
+	dx = abs(dx);
+	dy = abs(dy);
+
+	int d = max(dx, dy);
+
+	double r = d / 2;
+
+	int x = from.x;
+	int y = from.y;
+
+	if (dx > dy)
+	{
+		for (int i = 0; i < d; i++)
+		{
+			unsigned int index = (y * width) + x;
+			DeviceSetPixel(buffer, index, color);
+
+			x += sx;
+			r += dy;
+
+			if (r >= dx)
+			{
+				y += sy;
+				r -= dx;
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < d; i++)
+		{
+			unsigned int index = (y * width) + x;
+			DeviceSetPixel(buffer, index, color);
+
+			y += sy;
+			r += dx;
+			if (r >= dy)
+			{
+				x += sx;
+				r -= dy;
+			}
+
+		}
+	}
+
 
 }
 
-__global__ void KernelTransformVertices(SampleVertex* vertices, VertexOutput* output, unsigned int* indices, unsigned int vertexCount, unsigned int indexCount, FLOAT4X4 Transform, FLOAT4X4 View, FLOAT4X4 Projection)
+__global__ void KernelTransformVertices(DWORD* buffer, unsigned int width, unsigned int height, SampleVertex* vertices, VertexOutput* output, unsigned int* indices, unsigned int vertexCount, unsigned int indexCount, FLOAT4X4 Transform, FLOAT4X4 View, FLOAT4X4 Projection)
 {
-	unsigned int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-	unsigned int index = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
-
+	unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;//blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 	unsigned int triThread = index * 3;
+
+	auto clamp = [width, height](INT2& p)
+	{
+		if (p.x >= width)
+		{
+			p.x = width - 1;
+		}
+		else if (p.x < 0)
+		{
+			p.x = 0;
+		}
+		if (p.y >= height)
+		{
+			p.y = height - 1;
+		}
+		else if (p.y < 0)
+		{
+			p.y = 0;
+		}
+	};
 
 	if (triThread + 2 >= vertexCount)
 	{
@@ -172,8 +263,6 @@ __global__ void KernelTransformVertices(SampleVertex* vertices, VertexOutput* ou
 	FLOAT4 position1 = FLOAT4(v1.Position.x, v1.Position.y, v1.Position.z, 1.0f);
 	FLOAT4 position2 = FLOAT4(v2.Position.x, v2.Position.y, v2.Position.z, 1.0f);
 
-
-
 	position0 = Float4Multiply(position0, Transform);
 	position0 = Float4Multiply(position0, View);
 	position0 = Float4Multiply(position0, Projection);
@@ -186,17 +275,51 @@ __global__ void KernelTransformVertices(SampleVertex* vertices, VertexOutput* ou
 	position2 = Float4Multiply(position2, View);
 	position2 = Float4Multiply(position2, Projection);
 
-	FLOAT4 normal0 = FLOAT4(v0.Normal.x, v0.Normal.y, v0.Normal.z, 1.0f);
-	FLOAT4 normal1 = FLOAT4(v1.Normal.x, v1.Normal.y, v1.Normal.z, 1.0f);
-	FLOAT4 normal2 = FLOAT4(v2.Normal.x, v2.Normal.y, v2.Normal.z, 1.0f);
+	//FLOAT4 normal0 = FLOAT4(v0.Normal.x, v0.Normal.y, v0.Normal.z, 1.0f);
+	//FLOAT4 normal1 = FLOAT4(v1.Normal.x, v1.Normal.y, v1.Normal.z, 1.0f);
+	//FLOAT4 normal2 = FLOAT4(v2.Normal.x, v2.Normal.y, v2.Normal.z, 1.0f);
 
-	FLOAT2 texcoord0 = FLOAT2(v0.Texcoord.x, v0.Texcoord.y);
-	FLOAT2 texcoord1 = FLOAT2(v1.Texcoord.x, v1.Texcoord.y);
-	FLOAT2 texcoord2 = FLOAT2(v2.Texcoord.x, v2.Texcoord.y);
+	//FLOAT2 texcoord0 = FLOAT2(v0.Texcoord.x, v0.Texcoord.y);
+	//FLOAT2 texcoord1 = FLOAT2(v1.Texcoord.x, v1.Texcoord.y);
+	//FLOAT2 texcoord2 = FLOAT2(v2.Texcoord.x, v2.Texcoord.y);
 
-	output[triIndex0] = VertexOutput(position0, normal0, texcoord0);
-	output[triIndex1] = VertexOutput(position1, normal1, texcoord1);
-	output[triIndex2] = VertexOutput(position2, normal2, texcoord2);
+	//output[triIndex0] = VertexOutput(position0, normal0, texcoord0);
+	//output[triIndex1] = VertexOutput(position1, normal1, texcoord1);
+	//output[triIndex2] = VertexOutput(position2, normal2, texcoord2);
+
+	FLOAT3 ndcPosition0 = FLOAT3(position0.x / position0.w, position0.y / position0.w, position0.z / position0.w);
+	FLOAT3 ndcPosition1 = FLOAT3(position1.x / position1.w, position1.y / position1.w, position1.z / position1.w);
+	FLOAT3 ndcPosition2 = FLOAT3(position2.x / position2.w, position2.y / position2.w, position2.z / position2.w);
+
+	INT2 point0 = NDCToScreen(ndcPosition0.x / ndcPosition0.z, ndcPosition0.y / ndcPosition0.z, width, height);
+	INT2 point1 = NDCToScreen(ndcPosition1.x / ndcPosition1.z, ndcPosition1.y / ndcPosition1.z, width, height);
+	INT2 point2 = NDCToScreen(ndcPosition2.x / ndcPosition2.z, ndcPosition2.y / ndcPosition2.z, width, height);
+
+	clamp(point0);
+	clamp(point1);
+	clamp(point2);
+
+	DeviceDrawLine(buffer, point0, point1, width, ColorRGBA(1, 0, 0, 0));
+	DeviceDrawLine(buffer, point1, point2, width, ColorRGBA(0, 1, 0, 0));
+	DeviceDrawLine(buffer, point2, point0, width, ColorRGBA(0, 0, 1, 0));
+	
+	// update from here 22/01/04 11:42 AM
+
+	//const INT2 sampleLine1 = INT2(640, 360); // origin
+	//const INT2 sampleLine2 = INT2(1279, 719);
+	//const INT2 sampleLine3 = INT2(0, 0);
+	//const INT2 sampleLine4 = INT2(-640+ (width/2), 360+ (height/2));
+	//const INT2 sampleLine5 = INT2(1280, 0);
+	//const INT2 sampleLine6 = INT2(640, 720);
+	//const INT2 sampleLine7 = INT2(640, 0);
+
+	//DeviceDrawLine(buffer, sampleLine1, sampleLine2, width, ColorRGBA(1, 0, 0, 0));
+	//DeviceDrawLine(buffer, sampleLine1, sampleLine3, width, ColorRGBA(0, 1, 0, 0));
+	//DeviceDrawLine(buffer, sampleLine1, sampleLine4, width, ColorRGBA(0, 0, 1, 0));
+	//DeviceDrawLine(buffer, sampleLine1, sampleLine5, width, ColorRGBA(1, 1, 0, 0));
+	//DeviceDrawLine(buffer, sampleLine1, sampleLine6, width, ColorRGBA(0, 1, 1, 0));
+	//DeviceDrawLine(buffer, sampleLine1, sampleLine7, width, ColorRGBA(1, 0, 1, 0));
+	//
 
 	return;
 }
@@ -249,14 +372,20 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::sh
 	void* buffer = mBuffer->GetVirtual();
 
 	dim3 block = dim3(32, 1, 1);
-	int left = mTriangleCount % 3;
-	dim3 grid = dim3((mTriangleCount / block.x) + left, 1,1);
+	int left = indexCount % 3;
+	dim3 grid = dim3((indexCount / block.x) + left, 1,1);
+	
+	if (grid.x == 0)
+	{
+		grid.x = 1;
+	}
 
 	SampleVertex* sampleVertices = reinterpret_cast<SampleVertex*>(vertexBuffer->GetVirtual());
 	VertexOutput* outputVertices = reinterpret_cast<VertexOutput*>(outputBuffer->GetVirtual());
 
 	unsigned int* indices = reinterpret_cast<unsigned int*>(indexBuffer->GetVirtual());
 
-	KernelTransformVertices<<<grid,block>>>(sampleVertices, outputVertices, indices, vertexCount, mTriangleCount, FLOAT4X4::Identity(), view, projection);
+	KernelTransformVertices<<<grid,block>>>(CAST_PIXEL(buffer), width, height, sampleVertices, outputVertices, indices, vertexCount, indexCount, transform, view, projection);
+	
 	cudaDeviceSynchronize();
 }

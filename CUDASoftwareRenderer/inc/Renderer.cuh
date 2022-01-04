@@ -85,8 +85,8 @@ public:
 	~Renderer();
 
 	void Start();
-	void Update();
-	void Render();
+	void Update(float delta);
+	void Render(float delta);
 	void Release();
 
 	void ClearCanvas(const ColorRGBA& clearColor);
@@ -94,6 +94,9 @@ public:
 	void SetPixel(int x, int y, const ColorRGBA& color);
 	void SetPixelNDC(float x, float y, const ColorRGBA& color);
 	void SetTriangle(const Point2D& p0, const Point2D& p1, const Point2D& p2);
+
+	void OutText(int x, int y, std::string str);
+
 	void Present();
 	
 	void DrawScreen();
