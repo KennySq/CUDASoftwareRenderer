@@ -42,7 +42,8 @@ void Engine::Start()
 	mVertexBuffer = mResources->CreateBuffer(sizeof(SampleVertex), mVertexCount, vertices.data());
 	mIndexBuffer = mResources->CreateBuffer(sizeof(unsigned int), mIndexCount, sampleLoader.Indices.data());
 	mFragmentBuffer = mResources->CreateBuffer(sizeof(VertexOutput), mVertexCount);
-	
+	mTriangleBuffer = mResources->CreateBuffer(sizeof(Renderer::Triangle), mIndexCount / 3);
+
 	Renderer::Point2D p0 = Renderer::Point2D(INT2(0, 0), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
 	Renderer::Point2D p1 = Renderer::Point2D(INT2(50, 0), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
 	Renderer::Point2D p2 = Renderer::Point2D(INT2(25, 50), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
