@@ -32,6 +32,28 @@ public:
 		ColorRGBA Color;
 	};
 
+	struct Triangle
+	{
+		__device__ __host__ Triangle()
+		{
+
+		}
+
+		__device__ __host__ Triangle(unsigned int _i0, unsigned int _i1, unsigned int _i2)
+			: i0(_i0), i1(_i1), i2(_i2)
+		{
+
+		}
+
+		__device__ __host__ Triangle(const Triangle& right)
+			: i0(right.i0), i1(right.i1), i2(right.i2)
+		{
+
+		}
+
+		unsigned int i0, i1, i2;
+	};
+	
 	Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs);
 	~Renderer();
 

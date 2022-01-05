@@ -305,19 +305,61 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer, const INT2& p0, const IN
 
 __global__ void KernelRasterize(DWORD* buffer, unsigned int width, unsigned int height, VertexOutput* fragmentInput, unsigned int* indices, unsigned int indexCount)
 {
+	unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+	
+	unsigned int pixelIndex = blockIdx.x * blockDim.x * blockDim.y * blockDim.z
+		+ threadIdx.z * blockDim.y * blockDim.x
+		+ threadIdx.y * blockDim.x + threadIdx.x;
 
+	unsigned int triThread = pixelIndex * 3;
 
-	//FLOAT3 ndcPosition0 = FLOAT3(position0.x / position0.w, position0.y / position0.w, position0.z / position0.w);
-	//FLOAT3 ndcPosition1 = FLOAT3(position1.x / position1.w, position1.y / position1.w, position1.z / position1.w);
-	//FLOAT3 ndcPosition2 = FLOAT3(position2.x / position2.w, position2.y / position2.w, position2.z / position2.w);
+	unsigned int xIndexer = 16 * 16;
 
-	//INT2 point0 = NDCToScreen(ndcPosition0.x / ndcPosition0.z, ndcPosition0.y / ndcPosition0.z, width, height);
-	//INT2 point1 = NDCToScreen(ndcPosition1.x / ndcPosition1.z, ndcPosition1.y / ndcPosition1.z, width, height);
-	//INT2 point2 = NDCToScreen(ndcPosition2.x / ndcPosition2.z, ndcPosition2.y / ndcPosition2.z, width, height);
+	unsigned int triIndex0 = indices[(triThread / xIndexer) + index];
+	unsigned int triIndex1 = indices[(triThread / xIndexer) + index + 1];
+	unsigned int triIndex2 = indices[(triThread / xIndexer) + index + 2];
 
-	//clamp(point0);
-	//clamp(point1);
-	//clamp(point2);
+	auto clamp = [width, height](INT2& p)
+	{
+		if (p.x >= width)
+		{
+			p.x = width - 1;
+		}
+		else if (p.x < 0)
+		{
+			p.x = 0;
+		}
+		if (p.y >= height)
+		{
+			p.y = height - 1;
+		}
+		else if (p.y < 0)
+		{
+			p.y = 0;
+		}
+	};
+
+	VertexOutput v0 = fragmentInput[triIndex0];
+	VertexOutput v1 = fragmentInput[triIndex1];
+	VertexOutput v2 = fragmentInput[triIndex2];
+
+	FLOAT4 position0 = v0.Position;
+	FLOAT4 position1 = v1.Position;
+	FLOAT4 position2 = v2.Position;
+
+	FLOAT3 ndcPosition0 = FLOAT3(position0.x / position0.w, position0.y / position0.w, position0.z / position0.w);
+	FLOAT3 ndcPosition1 = FLOAT3(position1.x / position1.w, position1.y / position1.w, position1.z / position1.w);
+	FLOAT3 ndcPosition2 = FLOAT3(position2.x / position2.w, position2.y / position2.w, position2.z / position2.w);
+
+	INT2 point0 = NDCToScreen(ndcPosition0.x / ndcPosition0.z, ndcPosition0.y / ndcPosition0.z, width, height);
+	INT2 point1 = NDCToScreen(ndcPosition1.x / ndcPosition1.z, ndcPosition1.y / ndcPosition1.z, width, height);
+	INT2 point2 = NDCToScreen(ndcPosition2.x / ndcPosition2.z, ndcPosition2.y / ndcPosition2.z, width, height);
+
+	clamp(point0);
+	clamp(point1);
+	clamp(point2);
+
+	DeviceDrawFilledTriangle(buffer, point0, point1, point2, width, ColorRGBA(1, 1, 1, 1));
 
 	//DeviceDrawLine(buffer, point0, point1, width, ColorRGBA(1, 0, 0, 0));
 	//DeviceDrawLine(buffer, point1, point2, width, ColorRGBA(0, 1, 0, 0));
@@ -326,11 +368,6 @@ __global__ void KernelRasterize(DWORD* buffer, unsigned int width, unsigned int 
 
 __global__ void KernelTransformVertices(DWORD* buffer, unsigned int width, unsigned int height, SampleVertex* vertices, VertexOutput* output, unsigned int* indices, unsigned int vertexCount, unsigned int indexCount, FLOAT4X4 Transform, FLOAT4X4 View, FLOAT4X4 Projection)
 {
-	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-	int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
-		+ (threadIdx.z * (blockDim.x * blockDim.y))
-		+ (threadIdx.y * blockDim.x) + threadIdx.x;
-
 	unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;//blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 	unsigned int triThread = index * 3;
 
@@ -411,11 +448,10 @@ __global__ void KernelTransformVertices(DWORD* buffer, unsigned int width, unsig
 	clamp(point1);
 	clamp(point2);
 
-	DeviceDrawLine(buffer, point0, point1, width, ColorRGBA(1, 0, 0, 0));
-	DeviceDrawLine(buffer, point1, point2, width, ColorRGBA(0, 1, 0, 0));
-	DeviceDrawLine(buffer, point2, point0, width, ColorRGBA(0, 0, 1, 0));
+	//DeviceDrawLine(buffer, point0, point1, width, ColorRGBA(1, 0, 0, 0));
+	//DeviceDrawLine(buffer, point1, point2, width, ColorRGBA(0, 1, 0, 0));
+	//DeviceDrawLine(buffer, point2, point0, width, ColorRGBA(0, 0, 1, 0));
 
-	//	DeviceDrawFilledTriangle(buffer, point0, point1, point2, width, ColorRGBA(1, 1, 1, 1));
 	return;
 }
 
@@ -467,18 +503,18 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::sh
 	void* buffer = mBuffer->GetVirtual();
 
 	int totalThread = indexCount / 3;
-	dim3 block = dim3(512, 1, 1); // x(triangle) y(width), z(height)
+
+
+	dim3 transformBlock = dim3(512, 1, 1);
 	int left = totalThread % 512;
-	dim3 grid = dim3((totalThread / block.x) + left, 1, 1);
+	dim3 transformGrid = dim3((totalThread / transformBlock.x) + left, 1, 1);
 
-	dim3 rasterBlock = dim3(4, 16, 16);
-	dim3 rasterGrid = dim3(totalThread / rasterBlock.x + (totalThread % rasterBlock.x), width / rasterBlock.y, height / rasterBlock.z);
+	dim3 rasterBlock = dim3(512, 1, 1);
+	dim3 rasterGrid = dim3(totalThread / rasterBlock.x + (totalThread % rasterBlock.x), 1,1);
 
-	//	dim3 grid = dim3(((indexCount / 3) / block.x) + left, width / block.y, height / block.z);
-
-	if (grid.x == 0)
+	if (transformGrid.x == 0)
 	{
-		grid.x = 1;
+		transformGrid.x = 1;
 	}
 
 	SampleVertex* sampleVertices = reinterpret_cast<SampleVertex*>(vertexBuffer->GetVirtual());
@@ -486,7 +522,7 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::sh
 
 	unsigned int* indices = reinterpret_cast<unsigned int*>(indexBuffer->GetVirtual());
 
-	KernelTransformVertices << <grid, block >> > (CAST_PIXEL(buffer), width, height, sampleVertices, outputVertices, indices, vertexCount, indexCount, transform, view, projection);
+	KernelTransformVertices <<<transformGrid, transformBlock >>> (CAST_PIXEL(buffer), width, height, sampleVertices, outputVertices, indices, vertexCount, indexCount, transform, view, projection);
 	cudaDeviceSynchronize();
 
 	KernelRasterize << <rasterGrid, rasterBlock >> > (CAST_PIXEL(buffer), width, height, outputVertices, indices, indexCount);
