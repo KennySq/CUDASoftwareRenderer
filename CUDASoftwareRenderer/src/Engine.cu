@@ -24,7 +24,7 @@ void Engine::Start()
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 
-	workingPath += "\\CUDASoftwareRenderer\\assets\\cube.fbx";
+	workingPath += "\\CUDASoftwareRenderer\\assets\\sphere.fbx";
 
 	FbxLoader sampleLoader(workingPath.c_str());
 
@@ -41,13 +41,15 @@ void Engine::Start()
 
 	mVertexBuffer = mResources->CreateBuffer(sizeof(SampleVertex), mVertexCount, vertices.data());
 	mIndexBuffer = mResources->CreateBuffer(sizeof(unsigned int), mIndexCount, sampleLoader.Indices.data());
+	mFragmentBuffer = mResources->CreateBuffer(sizeof(VertexOutput), mVertexCount);
+	
 	Renderer::Point2D p0 = Renderer::Point2D(INT2(0, 0), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
 	Renderer::Point2D p1 = Renderer::Point2D(INT2(50, 0), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
 	Renderer::Point2D p2 = Renderer::Point2D(INT2(25, 50), ColorRGBA(1.0f, 0.0f, 0.0f, 0.0f));
 
 	// Math Test
 	FLOAT4X4 View = Float4x4ViewMatrix(0, 0, 0);
-	View._43 = -5.0f;
+	View._43 = -1.0f;
 	View._42 = -0.5f;
 	FLOAT4X4 Projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 
@@ -79,11 +81,11 @@ void Engine::Update(float delta)
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 	//mRenderer->Present();
 
-	view._43 = -8.0f;
+	view._43 = -4.0f;
 
-	transform = Float4x4Multiply(transform, Float4x4RotationY(0.0016f));
+	transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
 
-	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mVertexCount, mIndexCount, transform, view, Float4x4Transpose(projection));
+	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mFragmentBuffer, mVertexCount, mIndexCount, transform, view, Float4x4Transpose(projection));
 	mRenderer->OutText(0, 0, std::to_string(delta));
 }
 

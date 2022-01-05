@@ -30,6 +30,8 @@ private:
 	std::shared_ptr<DeviceBuffer> mVertexBuffer;
 	std::shared_ptr<DeviceBuffer> mIndexBuffer;
 
+	std::shared_ptr<DeviceBuffer> mFragmentBuffer;
+
 	unsigned int mVertexCount;
 	unsigned int mIndexCount;
 
