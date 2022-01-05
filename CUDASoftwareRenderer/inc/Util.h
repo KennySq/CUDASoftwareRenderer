@@ -26,3 +26,14 @@ __device__ __host__ inline INT2 NDCToScreen(float x, float y, unsigned int width
 
 	return point;
 }
+
+template<typename _Ty>
+__device__ __host__ inline void Swap(_Ty& t0, _Ty& t1)
+{
+	_Ty t = t0;
+
+	t0 = t1;
+	t1 = t;
+
+	return;
+}
