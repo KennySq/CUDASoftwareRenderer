@@ -49,6 +49,7 @@ public:
 		}
 
 		__device__ __host__ Triangle(const Triangle& right)
+			: Bound(right.Bound)
 		{
 			FragmentInput[0] = right.FragmentInput[0];
 			FragmentInput[1] = right.FragmentInput[1];
@@ -57,7 +58,6 @@ public:
 
 		VertexOutput FragmentInput[3];
 		AABB Bound;
-		FLOAT3 Barycentric;
 
 	};
 	

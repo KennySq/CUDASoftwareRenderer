@@ -147,7 +147,6 @@ inline __device__ void DeviceSetPixel(DWORD* buffer, unsigned int pointIndex, co
 
 __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, unsigned int width, const ColorRGBA& color)
 {
-
 	INT2 from = p0;
 	INT2 to = p1;
 
@@ -178,7 +177,7 @@ __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, u
 
 	int d = max(dx, dy);
 
-	double r = d / 2.0f;
+	double r = (double)d / 2.0f;
 
 	int x = from.x;
 	int y = from.y;
@@ -225,24 +224,20 @@ __device__ void DeviceFillBottomFlatTriangle(DWORD* buffer, const INT2& p0, cons
 {
 	int p0yOffset = p0.y - threadId;
 
-	float invSlope0 = (p1.x - p0.x) / (float)(p1.y - p0.y);
-	float invSlope1 = (p2.x - p0.x) / (float)(p2.y - p0.y);
+	float invSlope0 = (p1.x - p0.x) / floor((float)(p1.y - p0.y));
+	float invSlope1 = (p2.x - p0.x) / floor((float)(p2.y - p0.y));
 
 	float curx0 = p0.x - (invSlope0 * (float)threadId);
 	float curx1 = p0.x - (invSlope1 * (float)threadId);
 
 	unsigned int scanlineOffset = p0.y - p2.y;
 
-	if (invSlope1 >= FLT_MAX || invSlope1 <= -FLT_MAX)
+	if (threadId > scanlineOffset || p0yOffset < p2.y || p0yOffset < 0)
 	{
 		return;
 	}
-
-	if (threadId >= scanlineOffset)
-	{
-		return;
-	}
-
+	// 
+	//|| invSlope1 >= FLT_MAX || invSlope1 <= -FLT_MAX
 	INT2 begin = INT2(curx0, p0yOffset);
 	INT2 end = INT2(curx1, p0yOffset);
 	DeviceDrawLine(buffer, begin, end, width, color);
@@ -250,41 +245,25 @@ __device__ void DeviceFillBottomFlatTriangle(DWORD* buffer, const INT2& p0, cons
 
 __device__ void DeviceFillTopFlatTriangle(DWORD* buffer, const INT2& p0, const INT2& p1, const INT2& p2, unsigned int width, const ColorRGBA& color, unsigned int threadId)
 {
-
-	//updat from here 22/01/06 2:51 PM
 	int p2yOffset = p2.y + threadId;
 
-	float invSlope0 = (p2.x - p0.x) / (float)(p2.y - p0.y);
-	float invSlope1 = (p2.x - p1.x) / (float)(p2.y - p1.y);
+	float invSlope0 = ((p2.x - p0.x) / (float)(p2.y - p0.y));
+	float invSlope1 = ((p2.x - p1.x) / (float)(p2.y - p1.y));
 
-	if (invSlope1 >= FLT_MAX || invSlope1 <= -FLT_MAX)
-	{
-		return;
-	}
-
-	float curx0 = p2.x +(invSlope0 * threadId);
-	float curx1 = p2.x +(invSlope1 * threadId);
+	float curx0 = p2.x + (invSlope0 * threadId);
+	float curx1 = p2.x + (invSlope1 * threadId);
 
 	int scanlineSize = p0.y - p2.y;
 
-	if (threadId >= scanlineSize)
+	if (threadId > scanlineSize || p2yOffset > p0.y || p2yOffset < 0)
 	{
 		return;
 	}
-
+	//invSlope1 >= INFINITE || invSlope1 <= -INFINITE || 
+	//
 	INT2 begin = INT2(curx0, p2yOffset);
 	INT2 end = INT2(curx1, p2yOffset);
 	DeviceDrawLine(buffer, begin, end, width, color);
-
-	//for (int i = p2.y; i < p0.y; i++)
-	//{
-	//	INT2 begin = INT2(curx0, i);
-	//	INT2 end = INT2(curx1, i);
-	//	DeviceDrawLine(buffer, begin, end, width, color);
-
-	//	curx0 += invSlope0;
-	//	curx1 += invSlope1;
-	//}
 }
 
 
@@ -323,9 +302,12 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer, const INT2& p0, const IN
 	}
 	else
 	{
-		INT2 mid = INT2((int)(cp0.x + ((float)(cp1.y - cp0.y) / (float)(cp2.y - cp0.y)) * (cp2.x - cp0.x)), cp1.y);
+		int midx = (cp0.x + ((float)(cp1.y - cp0.y) / (float)(cp2.y - cp0.y)) * (cp2.x - cp0.x));
+		int midy = cp1.y;
+		
+		INT2 mid = INT2(midx, midy);
 
-		DeviceFillTopFlatTriangle(buffer, cp1, mid, cp2, width, color, threadId);
+		DeviceFillTopFlatTriangle(buffer, mid, cp1, cp2, width, color, threadId);
 		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, mid, width, color, threadId);
 	}
 
@@ -340,14 +322,12 @@ __global__ void KernelRasterize(DWORD* buffer, unsigned int width, unsigned int 
 	int threadId = blockId * (blockDim.x * blockDim.y)
 		+ (threadIdx.y * blockDim.x) + threadIdx.x;
 
-	unsigned int triIndex = threadId / threadPerTriangle;
+	unsigned int triIndex = (threadId / threadPerTriangle);
 
-	__syncthreads();
-
-	//if (triIndex >= triangleCount)
-	//{
-	//	return;
-	//}
+	if (triIndex >= triangleCount)
+	{
+		return;
+	}
 
 	Renderer::Triangle triangle = triangles[triIndex];
 
@@ -359,12 +339,17 @@ __global__ void KernelRasterize(DWORD* buffer, unsigned int width, unsigned int 
 	INT2 c1 = NDCToClipSpace(ndc1, width, height);
 	INT2 c2 = NDCToClipSpace(ndc2, width, height);
 
-	int scanlineIndex = (threadId / threadPerTriangle) + (threadId % threadPerTriangle);
+	bool bOut0 = IsOutofScreen(c0, width, height);
+	bool bOut1 = IsOutofScreen(c1, width, height);
+	bool bOut2 = IsOutofScreen(c2, width, height);
+
+	int scanlineIndex = threadId % threadPerTriangle;
 
 	DeviceDrawFilledTriangle(buffer, c0, c1, c2, width, ColorRGBA(1, 1, 1, 1), scanlineIndex);
+
 }
 
-__device__ AABB DeviceGetAABB(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2,  unsigned int width, unsigned int height)
+__device__ AABB DeviceGetAABB(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, unsigned int width, unsigned int height)
 {
 	FLOAT3 ndc0 = HomogeneousToNDC(vo0.Position);
 	FLOAT3 ndc1 = HomogeneousToNDC(vo1.Position);
@@ -375,7 +360,7 @@ __device__ AABB DeviceGetAABB(const VertexOutput& vo0, const VertexOutput& vo1, 
 
 	ndc0.x *= width;
 	ndc0.y *= height;
-	
+
 	ndc1.x *= width;
 	ndc1.y *= height;
 
@@ -406,8 +391,8 @@ __global__ void KernelInputAssembly(unsigned int triangleCount, VertexOutput* ve
 	VertexOutput vo1 = vertexOutput[triThread + 1];
 	VertexOutput vo2 = vertexOutput[triThread + 2];
 
-	AABB aabb = DeviceGetAABB(vo0, vo1, vo2, width, height);
-
+	//AABB aabb = DeviceGetAABB(vo0, vo1, vo2, width, height);
+	AABB aabb;
 	if (index >= triangleCount)
 	{
 		return;
@@ -429,7 +414,7 @@ __global__ void KernelTransformVertices(DWORD* buffer, unsigned int width, unsig
 		{
 			return false;
 		}
-		
+
 		return true;
 	};
 
@@ -477,6 +462,8 @@ __global__ void KernelTransformVertices(DWORD* buffer, unsigned int width, unsig
 	output[triThread] = o0;
 	output[triThread + 1] = o1;
 	output[triThread + 2] = o2;
+
+	//return;
 
 	// testing project to clip space transform
 	FLOAT3 ndcPosition0 = HomogeneousToNDC(position0);
@@ -564,7 +551,7 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::sh
 
 	dim3 transformBlock = dim3(512, 1, 1);
 	int left = totalThread % 512;
-	dim3 transformGrid = dim3(((totalThread + transformBlock.x - 1)/ transformBlock.x), 1, 1);
+	dim3 transformGrid = dim3(((totalThread + transformBlock.x - 1) / transformBlock.x), 1, 1);
 
 	dim3 rasterBlock = dim3(32, 32, 1);
 	int widthLeft = width % rasterBlock.x;
@@ -582,12 +569,12 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::sh
 
 	unsigned int* indices = reinterpret_cast<unsigned int*>(indexBuffer->GetVirtual());
 
-	KernelTransformVertices <<<transformGrid, transformBlock >>> (CAST_PIXEL(buffer), width, height, sampleVertices, outputVertices, indices, vertexCount, indexCount, transform, view, projection);
+	KernelTransformVertices << <transformGrid, transformBlock >> > (CAST_PIXEL(buffer), width, height, sampleVertices, outputVertices, indices, vertexCount, indexCount, transform, view, projection);
 	cudaDeviceSynchronize();
 
 	KernelInputAssembly << <transformGrid, transformBlock >> > (totalThread, outputVertices, triangles, width, height);
 	cudaDeviceSynchronize();
 
-	KernelRasterize<<<rasterGrid, rasterBlock>>>(CAST_PIXEL(buffer), width, height, triangles, totalThread);
+	KernelRasterize << <rasterGrid, rasterBlock >> > (CAST_PIXEL(buffer), width, height, triangles, totalThread);
 	cudaDeviceSynchronize();
 }
