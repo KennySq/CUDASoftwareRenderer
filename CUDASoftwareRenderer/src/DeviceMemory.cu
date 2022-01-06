@@ -21,7 +21,7 @@ DeviceMemory::DeviceMemory(long long initSize)
 	CUDAError(error);
 	cudaDeviceSynchronize();
 
-	size_t requestSize = deviceInfo.totalGlobalMem / 2;
+	size_t requestSize = deviceInfo.totalGlobalMem / 4;
 
 	if (initSize != -1)
 	{
