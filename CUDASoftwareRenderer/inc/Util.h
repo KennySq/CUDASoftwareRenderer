@@ -18,6 +18,20 @@ __device__ __host__ inline void AdjustPointToScreen(INT2& point, unsigned int wi
 	return;
 }
 
+__device__ __host__ inline FLOAT3 HomogeneousToNDC(const FLOAT4& position)
+{
+	return FLOAT3(position.x / position.w, position.y / position.w, position.z / position.w);
+}
+
+__device__ __host__ inline INT2 NDCToClipSpace(FLOAT3 ndc, unsigned int width, unsigned int height)
+{
+	INT2 pixelCoord = INT2(ndc.x * width / ndc.z, ndc.y * height / ndc.z);
+
+	AdjustPointToScreen(pixelCoord, width/2, height/2);
+
+	return pixelCoord;
+}
+
 __device__ __host__ inline INT2 NDCToScreen(float x, float y, unsigned int width, unsigned int height)
 {
 	INT2 point(x * width, y * height);
