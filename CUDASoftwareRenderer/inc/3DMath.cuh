@@ -43,6 +43,12 @@ struct INT2
 
 struct FLOAT2
 {
+	__device__ __host__ FLOAT2(const FLOAT2& right)
+		: x(right.x), y(right.y)
+	{
+
+	}
+
 	__device__ __host__ __vectorcall FLOAT2(float _x, float _y)
 		: x(_x), y(_y)
 	{
@@ -77,6 +83,12 @@ struct FLOAT3
 
 struct FLOAT4
 {
+	__device__ __host__ FLOAT4(const FLOAT4& right)
+		: x(right.x), y(right.y), z(right.z), w(right.w)
+	{
+
+	}
+
 	__device__ __host__ __vectorcall FLOAT4(float _x, float _y, float _z, float _w)
 		: x(_x), y(_y), z(_z), w(_w)
 	{
