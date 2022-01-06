@@ -8,6 +8,7 @@ struct ColorRGBA;
 
 #include"3DMath.cuh"
 #include"Color.cuh"
+#include"Geometry.cuh"
 
 struct Renderer
 {
@@ -39,19 +40,25 @@ public:
 
 		}
 
-		__device__ __host__ Triangle(unsigned int _i0, unsigned int _i1, unsigned int _i2)
-			: i0(_i0), i1(_i1), i2(_i2)
+		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB& aabb)
+			: Bound(aabb)
 		{
-
+			FragmentInput[0] = vo0;
+			FragmentInput[1] = vo1;
+			FragmentInput[2] = vo2;
 		}
 
 		__device__ __host__ Triangle(const Triangle& right)
-			: i0(right.i0), i1(right.i1), i2(right.i2)
 		{
-
+			FragmentInput[0] = right.FragmentInput[0];
+			FragmentInput[1] = right.FragmentInput[1];
+			FragmentInput[2] = right.FragmentInput[2];
 		}
 
-		unsigned int i0, i1, i2;
+		VertexOutput FragmentInput[3];
+		AABB Bound;
+		FLOAT3 Barycentric;
+
 	};
 	
 	Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs);
@@ -73,7 +80,10 @@ public:
 	void Present();
 	
 	void DrawScreen();
-	void DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::shared_ptr<DeviceBuffer> indexBuffer, std::shared_ptr<DeviceBuffer> fragmentBuffer, unsigned int vertexCount, unsigned int indexCount, const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection);
+	void DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::shared_ptr<DeviceBuffer> indexBuffer,
+		std::shared_ptr<DeviceBuffer> fragmentBuffer, std::shared_ptr<DeviceBuffer> triangleBuffer, 
+		unsigned int vertexCount, unsigned int indexCount, 
+		const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection);
 
 	
 private:
