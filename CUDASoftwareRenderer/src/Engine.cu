@@ -77,16 +77,16 @@ void Engine::Update(float delta)
 {
 	mRenderer->ClearCanvas(ColorRGBA(0.0f, 0.0f, 0.0f, 0.0f));
 
-	static FLOAT4X4 transform = FLOAT4X4::Identity();
+	static FLOAT4X4 transform = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(90.0f));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 	//mRenderer->Present();
 
-	view._43 = -4.0f;
+	view._43 = 5.0f;
 
-	transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
+	transform = Float4x4Multiply(transform, Float4x4RotationY(delta));
 
-	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mFragmentBuffer, mVertexCount, mIndexCount, transform, view, Float4x4Transpose(projection));
+	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mFragmentBuffer, mTriangleBuffer, mVertexCount, mIndexCount, transform, view, Float4x4Transpose(projection));
 	mRenderer->OutText(0, 0, std::to_string(delta));
 }
 
