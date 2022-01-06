@@ -18,6 +18,11 @@ __device__ __host__ inline void AdjustPointToScreen(INT2& point, unsigned int wi
 	return;
 }
 
+__device__ __host__ inline bool IsOutofScreen(INT2& point, unsigned int width, unsigned int height)
+{
+	return point.x < width&& point.x >= 0 && point.y < height&& point.y >= 0 ? false : true;
+}
+
 __device__ __host__ inline FLOAT3 HomogeneousToNDC(const FLOAT4& position)
 {
 	return FLOAT3(position.x / position.w, position.y / position.w, position.z / position.w);
