@@ -16,7 +16,7 @@ public:
 	Engine(HWND hWnd);
 
 	void Start();
-	void Update(float delta);
+	void Update(float delta, float time);
 	void Render(float delta);
 	void Destroy();
 private:
