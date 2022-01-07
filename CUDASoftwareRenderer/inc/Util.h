@@ -10,17 +10,35 @@ __device__ __host__ inline DWORD* CastPixel(void* ptr)
 	return reinterpret_cast<DWORD*>(ptr);
 }
 
+__device__ __host__ inline bool IsOutofScreen(const INT2& point, unsigned int width, unsigned int height)
+{
+	return point.x < width&& point.x >= 0 && point.y < height&& point.y >= 0 ? false : true;
+}
+
+__device__ __host__ inline bool IsOutofScreen(int x, int y, unsigned int width, unsigned int height)
+{
+	return ((x < width - 1) && (x >= 0) && (y < height - 1) && (y >= 0)) ? false : true;
+}
+
+__device__ __host__ inline unsigned int PointToIndex(const INT2& point, unsigned int width)
+{
+	return (point.y * width) + point.x;
+}
+
+__device__ __host__ inline void ClampClipSpace(INT2& point, unsigned int width, unsigned int height)
+{
+	Clamp<int>(point.x, 0, width - 1);
+	Clamp<int>(point.y, 0, height - 1);
+
+	return;
+}
+
 __device__ __host__ inline void AdjustPointToScreen(INT2& point, unsigned int width, unsigned int height)
 {
 	point.x = (width - point.x) - 1;
 	point.y = (height - point.y) - 1;
 
 	return;
-}
-
-__device__ __host__ inline bool IsOutofScreen(INT2& point, unsigned int width, unsigned int height)
-{
-	return point.x < width&& point.x >= 0 && point.y < height&& point.y >= 0 ? false : true;
 }
 
 __device__ __host__ inline FLOAT3 HomogeneousToNDC(const FLOAT4& position)
