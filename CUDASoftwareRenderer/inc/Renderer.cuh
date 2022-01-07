@@ -90,6 +90,7 @@ private:
 
 	std::shared_ptr<DIB> mCanvas;
 	std::shared_ptr<DeviceTexture> mBuffer;
+	std::shared_ptr<DeviceTexture> mDepth;
 
 	cudaStream_t mVertexStream;
 	cudaStream_t mFragmentStream;
