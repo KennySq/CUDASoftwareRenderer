@@ -38,3 +38,20 @@ inline __device__ __host__ DWORD ConvertColorToDWORD(const ColorRGBA& color)
 
 	return result;
 }
+
+inline __device__ __host__ DWORD PackDepth(float depth)
+{
+	DWORD result = 0;
+
+	BYTE b0 = reinterpret_cast<BYTE*>(&depth)[0];
+	BYTE b1 = reinterpret_cast<BYTE*>(&depth)[1];
+	BYTE b2 = reinterpret_cast<BYTE*>(&depth)[2];
+	BYTE b3 = reinterpret_cast<BYTE*>(&depth)[3];
+
+	result |= b0 << 0;
+	result |= b1 << 8;
+	result |= b2 << 16;
+	result |= b3 << 24;
+
+	return result;
+}
