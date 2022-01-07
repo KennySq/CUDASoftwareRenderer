@@ -49,11 +49,11 @@ struct FLOAT2
 
 	}
 
-	__device__ __host__ __vectorcall FLOAT2(float _x, float _y)
+	__device__ __host__  FLOAT2(float _x, float _y)
 		: x(_x), y(_y)
 	{
 	}
-	__device__ __host__ __vectorcall FLOAT2()
+	__device__ __host__  FLOAT2()
 		: x(.0f), y(.0f)
 	{
 
@@ -65,12 +65,12 @@ struct FLOAT2
 
 struct FLOAT3
 {
-	__device__ __host__ __vectorcall FLOAT3(float _x, float _y, float _z)
+	__device__ __host__  FLOAT3(float _x, float _y, float _z)
 		: x(_x), y(_y), z(_z)
 	{
 
 	}
-	__device__ __host__ __vectorcall FLOAT3()
+	__device__ __host__  FLOAT3()
 		: x(.0f), y(.0f), z(.0f)
 	{
 
@@ -89,12 +89,12 @@ struct FLOAT4
 
 	}
 
-	__device__ __host__ __vectorcall FLOAT4(float _x, float _y, float _z, float _w)
+	__device__ __host__  FLOAT4(float _x, float _y, float _z, float _w)
 		: x(_x), y(_y), z(_z), w(_w)
 	{
 
 	}
-	__device__ __host__ __vectorcall FLOAT4()
+	__device__ __host__  FLOAT4()
 		: x(.0f), y(.0f), z(.0f), w(.0f)
 	{
 
@@ -127,11 +127,11 @@ struct FLOAT3X3
 		return FLOAT3X3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 	}
 
-	__device__ __host__ __vectorcall FLOAT3X3()
+	__device__ __host__  FLOAT3X3()
 	{
 	}
 
-	__device__ __host__ __vectorcall FLOAT3X3(float s0, float s1, float s2, float s3, float s4, float s5, float s6, float s7, float s8)
+	__device__ __host__  FLOAT3X3(float s0, float s1, float s2, float s3, float s4, float s5, float s6, float s7, float s8)
 		: _11(s0), _12(s1), _13(s2), _21(s3), _22(s4), _23(s5), _31(s6), _32(s7), _33(s8)
 	{
 
@@ -182,11 +182,11 @@ struct FLOAT4X4
 		return FLOAT4X4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 	}
 
-	__device__ __host__ __vectorcall FLOAT4X4()
+	__device__ __host__  FLOAT4X4()
 	{
 
 	}
-	__device__ __host__ __vectorcall FLOAT4X4(float s0, float s1, float s3, float s4, float s5, float s6, float s7, float s8, float s9, float s10, float s11, float s12, float s13, float s14, float s15, float s16)
+	__device__ __host__  FLOAT4X4(float s0, float s1, float s3, float s4, float s5, float s6, float s7, float s8, float s9, float s10, float s11, float s12, float s13, float s14, float s15, float s16)
 		: _11(s0), _12(s1), _13(s3), _14(s4), _21(s5), _22(s6), _23(s7), _24(s8), _31(s9), _32(s10), _33(s11), _34(s12), _41(s13), _42(s14), _43(s15), _44(s16)
 	{
 
@@ -200,46 +200,46 @@ struct FLOAT4X4
 //---------------------------------------------------------------
 // FLOAT2
 
-inline __device__ __host__ FLOAT2 __vectorcall operator+(const FLOAT2& v1, const FLOAT2& v2)
+inline __device__ __host__ FLOAT2  operator+(const FLOAT2& v1, const FLOAT2& v2)
 {
 	return FLOAT2(v1.x + v2.x, v1.y + v2.y);
 }
 
-inline __device__ __host__ void __vectorcall operator+=(FLOAT2& v1, const FLOAT2& v2)
+inline __device__ __host__ void  operator+=(FLOAT2& v1, const FLOAT2& v2)
 {
 	v1.x += v2.x;
 	v1.y += v2.y;
 }
 
-inline __device__ __host__ FLOAT2 __vectorcall operator-(const FLOAT2& v1, const FLOAT2& v2)
+inline __device__ __host__ FLOAT2  operator-(const FLOAT2& v1, const FLOAT2& v2)
 {
 	return FLOAT2(v1.x - v2.x, v1.y - v2.y);
 }
 
-inline __device__ __host__ void __vectorcall operator-=(FLOAT2& v1, const FLOAT2& v2)
+inline __device__ __host__ void  operator-=(FLOAT2& v1, const FLOAT2& v2)
 {
 	v1.x -= v2.x;
 	v1.y -= v2.y;
 }
 
 
-inline __device__ __host__ FLOAT2 __vectorcall operator*(const FLOAT2& v1, float s)
+inline __device__ __host__ FLOAT2  operator*(const FLOAT2& v1, float s)
 {
 	return FLOAT2(v1.x * s, v1.y * s);
 }
 
-inline __device__ __host__ void __vectorcall operator*=(FLOAT2& v, float s)
+inline __device__ __host__ void  operator*=(FLOAT2& v, float s)
 {
 	v.x *= s;
 	v.y *= s;
 }
 
-inline __device__ __host__ FLOAT2 __vectorcall operator/(const FLOAT2& v1, float s)
+inline __device__ __host__ FLOAT2  operator/(const FLOAT2& v1, float s)
 {
 	return FLOAT2(v1.x / s, v1.y / s);
 }
 
-inline __device__ __host__ void __vectorcall operator/=(FLOAT2& v, float s)
+inline __device__ __host__ void  operator/=(FLOAT2& v, float s)
 {
 	v.x /= s;
 	v.y /= s;
@@ -248,48 +248,48 @@ inline __device__ __host__ void __vectorcall operator/=(FLOAT2& v, float s)
 //---------------------------------------------------------------
 // FLOAT3
 
-inline __device__ __host__ FLOAT3 __vectorcall operator+(const FLOAT3& v1, const FLOAT3& v2)
+inline __device__ __host__ FLOAT3  operator+(const FLOAT3& v1, const FLOAT3& v2)
 {
 	return FLOAT3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 }
 
-inline __device__ __host__ void __vectorcall operator+=(FLOAT3& v1, const FLOAT3& v2)
+inline __device__ __host__ void  operator+=(FLOAT3& v1, const FLOAT3& v2)
 {
 	v1.x += v2.x;
 	v1.y += v2.y;
 	v1.z += v2.z;
 }
 
-inline __device__ __host__ FLOAT3 __vectorcall operator-(const FLOAT3& v1, const FLOAT3& v2)
+inline __device__ __host__ FLOAT3  operator-(const FLOAT3& v1, const FLOAT3& v2)
 {
 	return FLOAT3(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
 }
 
-inline __device__ __host__ void __vectorcall operator-=(FLOAT3& v1, const FLOAT3& v2)
+inline __device__ __host__ void  operator-=(FLOAT3& v1, const FLOAT3& v2)
 {
 	v1.x -= v2.x;
 	v1.y -= v2.y;
 	v1.z -= v2.z;
 }
 
-inline __device__ __host__ FLOAT3 __vectorcall operator*(const FLOAT3& v, float s)
+inline __device__ __host__ FLOAT3  operator*(const FLOAT3& v, float s)
 {
 	return FLOAT3(v.x * s, v.y * s, v.z * s);
 }
 
-inline __device__ __host__ void __vectorcall operator*=(FLOAT3& v, float s)
+inline __device__ __host__ void  operator*=(FLOAT3& v, float s)
 {
 	v.x *= s;
 	v.y *= s;
 	v.z *= s;
 }
 
-inline __device__ __host__ FLOAT3 __vectorcall operator/(const FLOAT3& v1, float s)
+inline __device__ __host__ FLOAT3  operator/(const FLOAT3& v1, float s)
 {
 	return FLOAT3(v1.x / s, v1.y / s, v1.z / s);
 }
 
-inline __device__ __host__ void __vectorcall operator/=(FLOAT3& v, float s)
+inline __device__ __host__ void  operator/=(FLOAT3& v, float s)
 {
 	v.x /= s;
 	v.y /= s;
@@ -299,12 +299,12 @@ inline __device__ __host__ void __vectorcall operator/=(FLOAT3& v, float s)
 //---------------------------------------------------------------
 // FLOAT4
 
-inline __device__ __host__ FLOAT4 __vectorcall operator+(const FLOAT4& v1, const FLOAT4& v2)
+inline __device__ __host__ FLOAT4  operator+(const FLOAT4& v1, const FLOAT4& v2)
 {
 	return FLOAT4(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w + v2.w);
 }
 
-inline __device__ __host__ void __vectorcall operator+=(FLOAT4& v1, const FLOAT4& v2)
+inline __device__ __host__ void  operator+=(FLOAT4& v1, const FLOAT4& v2)
 {
 	v1.x += v2.x;
 	v1.y += v2.y;
@@ -312,12 +312,12 @@ inline __device__ __host__ void __vectorcall operator+=(FLOAT4& v1, const FLOAT4
 	v1.w += v2.w;
 }
 
-inline __device__ __host__ FLOAT4 __vectorcall operator-(const FLOAT4& v1, const FLOAT4& v2)
+inline __device__ __host__ FLOAT4  operator-(const FLOAT4& v1, const FLOAT4& v2)
 {
 	return FLOAT4(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.w - v2.w);
 }
 
-inline __device__ __host__ void __vectorcall operator-=(FLOAT4& v1, const FLOAT4& v2)
+inline __device__ __host__ void  operator-=(FLOAT4& v1, const FLOAT4& v2)
 {
 	v1.x -= v2.x;
 	v1.y -= v2.y;
@@ -325,12 +325,12 @@ inline __device__ __host__ void __vectorcall operator-=(FLOAT4& v1, const FLOAT4
 	v1.w -= v2.w;
 }
 
-inline __device__ __host__ FLOAT4 __vectorcall operator*(const FLOAT4& v, float s)
+inline __device__ __host__ FLOAT4  operator*(const FLOAT4& v, float s)
 {
 	return FLOAT4(v.x * s, v.y * s, v.z * s, v.w * s);
 }
 
-inline __device__ __host__ void __vectorcall operator*=(FLOAT4& v, float s)
+inline __device__ __host__ void  operator*=(FLOAT4& v, float s)
 {
 	v.x *= s;
 	v.y *= s;
@@ -338,12 +338,12 @@ inline __device__ __host__ void __vectorcall operator*=(FLOAT4& v, float s)
 	v.w *= s;
 }
 
-inline __device__ __host__ FLOAT4 __vectorcall operator/(const FLOAT4& v1, float s)
+inline __device__ __host__ FLOAT4  operator/(const FLOAT4& v1, float s)
 {
 	return FLOAT4(v1.x / s, v1.y / s, v1.z / s, v1.w / s);
 }
 
-inline __device__ __host__ void __vectorcall operator/=(FLOAT4& v, float s)
+inline __device__ __host__ void  operator/=(FLOAT4& v, float s)
 {
 	v.x /= s;
 	v.y /= s;
@@ -354,54 +354,54 @@ inline __device__ __host__ void __vectorcall operator/=(FLOAT4& v, float s)
 //---------------------------------------------------------------
 // other methods
 
-FLOAT2 __device__ __host__ inline __vectorcall Float2Abs(const FLOAT2& v)
+FLOAT2 __device__ __host__ inline  Float2Abs(const FLOAT2& v)
 {
 	return FLOAT2(abs(v.x), abs(v.y));
 }
 
-FLOAT3 __device__ __host__ inline __vectorcall Float3Abs(const FLOAT3& v)
+FLOAT3 __device__ __host__ inline  Float3Abs(const FLOAT3& v)
 {
 	return FLOAT3(abs(v.x), abs(v.y), abs(v.z));
 }
 
-FLOAT4 __device__ __host__ inline __vectorcall Float4Abs(const FLOAT4& v)
+FLOAT4 __device__ __host__ inline  Float4Abs(const FLOAT4& v)
 {
-	
+
 	return FLOAT4(abs(v.x), abs(v.y), abs(v.z), abs(v.w));
 }
 
-float __device__ __host__ inline __vectorcall Float2Length(const FLOAT2& v)
+float __device__ __host__ inline  Float2Length(const FLOAT2& v)
 {
-	
+
 	return sqrt(v.x * v.x + v.y * v.y);
 }
 
-float __device__ __host__ inline __vectorcall Float3Length(const FLOAT3& v)
+float __device__ __host__ inline  Float3Length(const FLOAT3& v)
 {
 	return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-float __device__ __host__ inline __vectorcall Float4Length(const FLOAT4& v)
+float __device__ __host__ inline  Float4Length(const FLOAT4& v)
 {
-	
+
 	return sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
 }
 
-float __device__ __host__ inline __vectorcall Float2Dot(const FLOAT2& v1, const FLOAT2& v2)
+float __device__ __host__ inline  Float2Dot(const FLOAT2& v1, const FLOAT2& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y;
 }
-float __device__ __host__ inline __vectorcall Float3Dot(const FLOAT3& v1, const FLOAT3& v2)
+float __device__ __host__ inline  Float3Dot(const FLOAT3& v1, const FLOAT3& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
-float __device__ __host__ inline __vectorcall Float4Dot(const FLOAT4& v1, const FLOAT4& v2)
+float __device__ __host__ inline  Float4Dot(const FLOAT4& v1, const FLOAT4& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z + v1.w * v2.w;
 }
 
-FLOAT4 __device__ __host__ inline __vectorcall Float4Multiply(const FLOAT4& v, const FLOAT4X4& m)
+FLOAT4 __device__ __host__ inline  Float4Multiply(const FLOAT4& v, const FLOAT4X4& m)
 {
 	FLOAT4 result;
 
@@ -413,7 +413,7 @@ FLOAT4 __device__ __host__ inline __vectorcall Float4Multiply(const FLOAT4& v, c
 	return result;
 }
 
-FLOAT3 __device__ __host__ inline __vectorcall Float3Cross(const FLOAT3& v1, const FLOAT3& v2)
+FLOAT3 __device__ __host__ inline  Float3Cross(const FLOAT3& v1, const FLOAT3& v2)
 {
 	FLOAT3 right = FLOAT3(1, 0, 0), up = FLOAT3(0, 1, 0), forward = FLOAT3(0, 0, 1);
 
@@ -424,7 +424,7 @@ FLOAT3 __device__ __host__ inline __vectorcall Float3Cross(const FLOAT3& v1, con
 	return s0 + s1 + s3;
 }
 
-FLOAT2 __device__ __host__ inline __vectorcall Float2Cross(const FLOAT2& v1, const FLOAT2& v2)
+FLOAT2 __device__ __host__ inline  Float2Cross(const FLOAT2& v1, const FLOAT2& v2)
 {
 	FLOAT2 right = FLOAT2(1, 0);
 
@@ -436,12 +436,12 @@ FLOAT2 __device__ __host__ inline __vectorcall Float2Cross(const FLOAT2& v1, con
 // -----------------------------------------------------------------
 // Matrix 4x4
 
-float __device__ __host__ inline __vectorcall Float2x2Determinant(const __FLOAT2X2PRV& m)
+float __device__ __host__ inline  Float2x2Determinant(const __FLOAT2X2PRV& m)
 {
 	return m._11 * m._22 - m._12 * m._21;
 }
 
-float __device__ __host__ inline __vectorcall Float3x3Determinant(const FLOAT3X3& m)
+float __device__ __host__ inline  Float3x3Determinant(const FLOAT3X3& m)
 {
 	__FLOAT2X2PRV a = __FLOAT2X2PRV(m._22, m._23, m._32, m._33);
 	__FLOAT2X2PRV b = __FLOAT2X2PRV(m._21, m._23, m._31, m._33);
@@ -454,7 +454,7 @@ float __device__ __host__ inline __vectorcall Float3x3Determinant(const FLOAT3X3
 	return s0 - s1 + s2;
 }
 
-float __device__ __host__ inline __vectorcall Float4x4Determinant(const FLOAT4X4& m)
+float __device__ __host__ inline  Float4x4Determinant(const FLOAT4X4& m)
 {
 	FLOAT3X3 a = FLOAT3X3(m._22, m._23, m._24, m._32, m._33, m._34, m._42, m._43, m._44);
 	FLOAT3X3 b = FLOAT3X3(m._12, m._13, m._14, m._32, m._33, m._34, m._42, m._43, m._44);
@@ -469,7 +469,7 @@ float __device__ __host__ inline __vectorcall Float4x4Determinant(const FLOAT4X4
 	return s0 - s1 + s2 - s3;
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4Multiply(const FLOAT4X4& m1, const FLOAT4X4& m2)
+FLOAT4X4 __device__ __host__ inline  Float4x4Multiply(const FLOAT4X4& m1, const FLOAT4X4& m2)
 {
 	FLOAT4X4 mat;
 
@@ -496,7 +496,7 @@ FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4Multiply(const FLOAT4X4
 	return mat;
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4ViewMatrix(float pitch, float yaw, float roll)
+FLOAT4X4 __device__ __host__ inline  Float4x4ViewMatrix(float pitch, float yaw, float roll)
 {
 	FLOAT4X4 yawMat(cos(yaw), 0, sin(yaw), 0, 0, 1, 0, 0, -sin(yaw), 0, cos(yaw), 0, 0, 0, 0, 1);
 	FLOAT4X4 pitchMat(1, 0, 0, 0, 0, cos(pitch), -sin(pitch), 0, 0, sin(pitch), cos(pitch), 0, 0, 0, 0, 1);
@@ -507,7 +507,7 @@ FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4ViewMatrix(float pitch,
 	return Float4x4Multiply(result, rollMat);
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4ProjectionMatrix(float n, float f, float fov, float aspectRatio)
+FLOAT4X4 __device__ __host__ inline  Float4x4ProjectionMatrix(float n, float f, float fov, float aspectRatio)
 {
 	float focalLength = 1.0f / tan(fov * 0.5f);
 
@@ -517,7 +517,7 @@ FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4ProjectionMatrix(float 
 		0, 0, -1, 0);
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4Transpose(const FLOAT4X4& other)
+FLOAT4X4 __device__ __host__ inline  Float4x4Transpose(const FLOAT4X4& other)
 {
 	return FLOAT4X4(other._11, other._21, other._31, other._41,
 		other._12, other._22, other._32, other._42,
@@ -531,37 +531,37 @@ float __device__ __host__ inline DegreeToRadian(float deg)
 }
 
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4Translate(const FLOAT3& translate)
+FLOAT4X4 __device__ __host__ inline  Float4x4Translate(const FLOAT3& translate)
 {
 	return FLOAT4X4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, translate.x, translate.y, translate.z, 1);
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4Scale(const FLOAT3& scale)
+FLOAT4X4 __device__ __host__ inline  Float4x4Scale(const FLOAT3& scale)
 {
 	return FLOAT4X4(scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1);
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4RotationX(float theta)
+FLOAT4X4 __device__ __host__ inline  Float4x4RotationX(float theta)
 {
 	return FLOAT4X4(1, 0, 0, 0, 0, cos(theta), sin(theta), 0, 0, -sin(theta), cos(theta), 0, 0, 0, 0, 1);
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4RotationY(float theta)
+FLOAT4X4 __device__ __host__ inline  Float4x4RotationY(float theta)
 {
 	return FLOAT4X4(cos(theta), 0, -sin(theta), 0, 0, 1, 0, 0, sin(theta), 0, cos(theta), 0, 0, 0, 0, 1);
 }
 
-FLOAT4X4 __device__ __host__ inline __vectorcall Float4x4RotationZ(float theta)
+FLOAT4X4 __device__ __host__ inline  Float4x4RotationZ(float theta)
 {
 	return FLOAT4X4(cos(theta), -sin(theta), 0, 0, sin(theta), cos(theta), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 }
 
 inline __device__ __host__ DWORD deviceConvertRGB(float r, float g, float b, float a)
 {
-	BYTE comp0 = r * 255.999f;
-	BYTE comp1 = g * 255.999f;
-	BYTE comp2 = b * 255.999f;
-	BYTE comp3 = a * 255.999f;
+	BYTE comp0 = static_cast<BYTE>(r * 255.999f);
+	BYTE comp1 = static_cast<BYTE>(g * 255.999f);
+	BYTE comp2 = static_cast<BYTE>(b * 255.999f);
+	BYTE comp3 = static_cast<BYTE>(a * 255.999f);
 
 	DWORD color = 0;
 
@@ -573,3 +573,15 @@ inline __device__ __host__ DWORD deviceConvertRGB(float r, float g, float b, flo
 	return color;
 }
 
+template<typename _Ty>
+__device__ __host__ inline void Clamp(_Ty& t, _Ty min, _Ty max)
+{
+	if (t < min)
+	{
+		t = min;
+	}
+	if (t > max)
+	{
+		t = max;
+	}
+}
