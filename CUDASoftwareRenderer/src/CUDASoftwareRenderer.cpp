@@ -72,8 +72,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         else
         {
             tStart = clock();
-
-            gEngine->Update(gFrametime);
+            
+            gEngine->Update(gFrametime, (double)clock() / CLOCKS_PER_SEC);
             gEngine->Render(gFrametime);
         
             tEnd = clock();
