@@ -50,13 +50,13 @@ void Engine::Start()
 void Engine::Update(float delta, float time)
 {
 	mRenderer->ClearCanvas(ColorRGBA(0.0f, 0.0f, 0.0f, 0.0f));
-
+	mRenderer->ClearDepth();
 	static FLOAT4X4 transform = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(90.0f));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 	//mRenderer->Present();
 
-	view._43 = 3.0f;
+	view._43 = 10.0f;
 	/*
 	view._42 = -2.0f;
 	view._41 = -4.0f;*/
