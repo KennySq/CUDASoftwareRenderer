@@ -40,8 +40,8 @@ public:
 
 		}
 
-		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB& aabb)
-			: Bound(aabb)
+		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB& aabb, const FLOAT3& barycentric)
+			: Bound(aabb), Barycentric(barycentric)
 		{
 			FragmentInput[0] = vo0;
 			FragmentInput[1] = vo1;
@@ -49,7 +49,7 @@ public:
 		}
 
 		__device__ __host__ Triangle(const Triangle& right)
-			: Bound(right.Bound)
+			: Bound(right.Bound), Barycentric(right.Barycentric)
 		{
 			FragmentInput[0] = right.FragmentInput[0];
 			FragmentInput[1] = right.FragmentInput[1];
@@ -58,7 +58,7 @@ public:
 
 		VertexOutput FragmentInput[3];
 		AABB Bound;
-
+		FLOAT3 Barycentric;
 	};
 	
 	Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs);
@@ -70,7 +70,7 @@ public:
 	void Release();
 
 	void ClearCanvas(const ColorRGBA& clearColor);
-
+	void ClearDepth();
 	void SetPixel(int x, int y, const ColorRGBA& color);
 	void SetPixelNDC(float x, float y, const ColorRGBA& color);
 	void SetTriangle(const Point2D& p0, const Point2D& p1, const Point2D& p2);

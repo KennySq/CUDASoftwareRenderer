@@ -20,6 +20,16 @@ __global__ void KernelClearBitmap(void* target, unsigned int width, unsigned int
 	asPixel[index] = ConvertColorToDWORD(clearColor);
 }
 
+__global__ void KernelClearDepth(void* target, unsigned int width, unsigned int height, float v)
+{
+	unsigned int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+	unsigned int index = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+	DWORD* asPixel = reinterpret_cast<DWORD*>(target);
+
+	asPixel[index] = PackDepth(v);
+}
+
 Renderer::Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs)
 	: mCanvas(dib)
 {
@@ -124,7 +134,7 @@ void Renderer::ClearCanvas(const ColorRGBA& clearColor)
 	unsigned int width = mCanvas->GetWidth();
 	unsigned int height = mCanvas->GetHeight();
 
-	void* texture = mDepth->GetVirtual();
+	void* texture = mBuffer->GetVirtual();
 
 	dim3 block = dim3(32, 18, 1);
 	dim3 grid = dim3(width / block.x, height / block.y, 1);
@@ -134,9 +144,22 @@ void Renderer::ClearCanvas(const ColorRGBA& clearColor)
 	cudaDeviceSynchronize();
 }
 
+void Renderer::ClearDepth()
+{
+	unsigned int width = mCanvas->GetWidth();
+	unsigned int height = mCanvas->GetHeight();
+
+	void* depth = mDepth->GetVirtual();
+
+	dim3 block = dim3(32, 18, 1);
+	dim3 grid = dim3(width / block.x, height / block.y, 1);
+
+	KernelClearDepth << <grid, block >> > (depth, width, height, 1.0f);
+}
+
 void Renderer::Present()
 {
-	mCanvas->CopyBuffer(mDepth);
+	mCanvas->CopyBuffer(mBuffer);
 	mCanvas->Present();
 }
 
@@ -155,7 +178,7 @@ inline __device__ DWORD DeviceGetPixel(DWORD* buffer, unsigned int pointIndex)
 	return buffer[pointIndex];
 }
 
-__device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, unsigned int width, unsigned int height, const ColorRGBA& color)
+__device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, unsigned int width, unsigned int height)
 {
 	INT2 from = p0;
 	INT2 to = p1;
@@ -203,8 +226,8 @@ __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, u
 		for (int i = 0; i < d; i++)
 		{
 			unsigned int index = (y * width) + x;
-			
-			DeviceSetPixel(buffer, index, color);
+
+			DeviceSetPixel(buffer, index, ColorRGBA(1, 1, 1, 1));
 
 			x += sx;
 			r += dy;
@@ -222,7 +245,7 @@ __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, u
 		{
 			unsigned int index = (y * width) + x;
 
-			DeviceSetPixel(buffer, index, color);
+			DeviceSetPixel(buffer, index, ColorRGBA(1, 1, 1, 1));
 
 			y += sy;
 			r += dx;
@@ -234,14 +257,11 @@ __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, u
 
 		}
 	}
-
-
 }
 
-__device__ void DeviceFillBottomFlatTriangle(DWORD* buffer, 
+__device__ void DeviceFillBottomFlatTriangle(DWORD* buffer,
 	const INT2& p0, const INT2& p1, const INT2& p2,
-	float d0, float d1, float d2,
-	unsigned int width, unsigned int height, const ColorRGBA& color, unsigned int threadId)
+	unsigned int width, unsigned int height, unsigned int threadId)
 {
 	int p0yOffset = p0.y - threadId;
 
@@ -260,14 +280,12 @@ __device__ void DeviceFillBottomFlatTriangle(DWORD* buffer,
 
 	INT2 begin = INT2(curx0, p0yOffset);
 	INT2 end = INT2(curx1, p0yOffset);
-	DeviceDrawLine(buffer, begin, end, width, height, color);
+	DeviceDrawLine(buffer, begin, end, width, height);
 }
 
 __device__ void DeviceFillTopFlatTriangle(DWORD* buffer,
 	const INT2& p0, const INT2& p1, const INT2& p2,
-	float d0, float d1, float d2,
-	unsigned int width, unsigned int height, 
-	const ColorRGBA& color, unsigned int threadId)
+	unsigned int width, unsigned int height, unsigned int threadId)
 {
 	int p2yOffset = p2.y + threadId;
 
@@ -286,14 +304,13 @@ __device__ void DeviceFillTopFlatTriangle(DWORD* buffer,
 
 	INT2 begin = INT2(curx0, p2yOffset);
 	INT2 end = INT2(curx1, p2yOffset);
-	DeviceDrawLine(buffer, begin, end, width, height, color);
+	DeviceDrawLine(buffer, begin, end, width, height);
 }
 
 
 __device__ void DeviceDrawFilledTriangle(DWORD* buffer,
-	const INT2& p0, const INT2& p1, INT2& p2, float d0, float d1, float d2,
-	unsigned int width, unsigned int height, 
-	const ColorRGBA& color, unsigned int threadId)
+	const INT2& p0, const INT2& p1, INT2& p2,
+	unsigned int width, unsigned int height, unsigned int threadId)
 {
 	INT2 cp0 = p0, cp1 = p1, cp2 = p2;
 
@@ -319,22 +336,91 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer,
 
 	if (cp2.y == cp1.y)
 	{
-		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, cp2, width,height, color, threadId);
+		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, cp2, width, height, threadId);
 	}
 
 	else if (cp0.y == cp1.y)
 	{
-		DeviceFillTopFlatTriangle(buffer, cp0, cp1, cp2, width, height, color, threadId);
+		DeviceFillTopFlatTriangle(buffer, cp0, cp1, cp2, width, height, threadId);
 	}
 	else
 	{
 		int midx = (cp0.x + ((float)(cp1.y - cp0.y) / (float)(cp2.y - cp0.y)) * (cp2.x - cp0.x));
 		int midy = cp1.y;
-		
+
 		INT2 mid = INT2(midx, midy);
 
-		DeviceFillTopFlatTriangle(buffer, mid, cp1, cp2, width, height, color, threadId);
-		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, mid, width, height, color, threadId);
+		DeviceFillTopFlatTriangle(buffer, mid, cp1, cp2, width, height, threadId);
+		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, mid, width, height, threadId);
+	}
+}
+
+__device__ float DeviceInterpolateDepth(unsigned int width, unsigned int height,
+	const Renderer::Triangle& triangle, float d0, float d1, float d2)
+{
+	
+}
+
+__global__ void KernelDepth(DWORD* depth, unsigned int width, unsigned int height,
+	Renderer::Triangle* triangles, unsigned int triangleCount, FLOAT4X4 projection)
+{
+	unsigned int dispatchThreads = gridDim.y * gridDim.x * blockDim.x * blockDim.y;
+	unsigned int threadPerTriangle = dispatchThreads / triangleCount;
+
+	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+	int threadId = blockId * (blockDim.x * blockDim.y)
+		+ (threadIdx.y * blockDim.x) + threadIdx.x;
+
+	unsigned int triIndex = (threadId / threadPerTriangle);
+
+	if (triIndex >= triangleCount)
+	{
+		return;
+	}
+
+	Renderer::Triangle triangle = triangles[triIndex];
+
+	FLOAT4 project0 = triangle.FragmentInput[0].Position;
+	FLOAT4 project1 = triangle.FragmentInput[1].Position;
+	FLOAT4 project2 = triangle.FragmentInput[2].Position;
+
+	FLOAT3 ndc0 = HomogeneousToNDC(project0);
+	FLOAT3 ndc1 = HomogeneousToNDC(project1);
+	FLOAT3 ndc2 = HomogeneousToNDC(project2);
+
+	INT2 clip0 = NDCToClipSpace(ndc0, width, height);
+	INT2 clip1 = NDCToClipSpace(ndc1, width, height);
+	INT2 clip2 = NDCToClipSpace(ndc2, width, height);
+
+	const float fn0 = projection._33;
+	const float fn1 = projection._34;
+
+	float depth0 = 1.0f / ndc0.z;//fn0 + (1.0f / ndc0.z) * fn1;
+	float depth1 = 1.0f / ndc1.z;//fn0 + (1.0f / ndc1.z) * fn1;
+	float depth2 = 1.0f / ndc2.z;//fn0 + (1.0f / ndc2.z) * fn1;
+
+	int scanlineIndex = threadId % threadPerTriangle;
+	int yi = scanlineIndex / width;
+	int xi = scanlineIndex % width;
+
+	INT2 pixelId = INT2(xi, yi);
+
+	float dist0 = Float3Distance(ndc0, );
+	float dist1 = Float3Distance(ndc1, );
+	float dist2 = Float3Distance(ndc2, );
+
+	float weight0 = 1.0f / dist0;
+	float weight1 = 1.0f / dist1;
+	float weight2 = 1.0f / dist2;
+
+	float intDepth = (depth0 + depth1 + depth2) / (weight0 + weight1 + weight2);
+
+
+	float evalDepth = DeviceGetPixel(depth, scanlineIndex);
+
+	if (intDepth < evalDepth)
+	{
+		depth[scanlineIndex] = PackDepth(intDepth);
 	}
 
 }
@@ -361,7 +447,6 @@ __global__ void KernelRasterize(DWORD* buffer, DWORD* depth, unsigned int width,
 	FLOAT4 project1 = triangle.FragmentInput[1].Position;
 	FLOAT4 project2 = triangle.FragmentInput[2].Position;
 
-
 	FLOAT3 ndc0 = HomogeneousToNDC(project0);
 	FLOAT3 ndc1 = HomogeneousToNDC(project1);
 	FLOAT3 ndc2 = HomogeneousToNDC(project2);
@@ -374,13 +459,9 @@ __global__ void KernelRasterize(DWORD* buffer, DWORD* depth, unsigned int width,
 	unsigned int depthIndex1 = PointToIndex(c1, width);
 	unsigned int depthIndex2 = PointToIndex(c2, width);
 
-	float d0 = depth[depthIndex0];
-	float d1 = depth[depthIndex1];
-	float d2 = depth[depthIndex2];
-
 	int scanlineIndex = threadId % threadPerTriangle;
 
-	DeviceDrawFilledTriangle(buffer, c0, c1, c2, d0,d1,d2, width, height, ColorRGBA(1, 1, 1, 1), scanlineIndex);
+	DeviceDrawFilledTriangle(buffer, c0, c1, c2, width, height, scanlineIndex);
 }
 
 __device__ AABB DeviceGetAABB(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, unsigned int width, unsigned int height)
@@ -416,74 +497,40 @@ __device__ AABB DeviceGetAABB(const VertexOutput& vo0, const VertexOutput& vo1, 
 	return AABB(FLOAT2(minX, minY), FLOAT2(maxX, maxY));
 }
 
-__global__ void KernelInputAssembly(unsigned int triangleCount, VertexOutput* vertexOutput, Renderer::Triangle* triangleBuffer, unsigned int width, unsigned int height)
+__device__ FLOAT3 DeviceGetBarycentric(const FLOAT4& p0, const FLOAT4& p1, const FLOAT4& p2)
 {
-	unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
-	unsigned int triThread = index * 3;
+	FLOAT3 ndc0 = HomogeneousToNDC(p0);
+	FLOAT3 ndc1 = HomogeneousToNDC(p1);
+	FLOAT3 ndc2 = HomogeneousToNDC(p2);
 
-	VertexOutput vo0 = vertexOutput[triThread];
-	VertexOutput vo1 = vertexOutput[triThread + 1];
-	VertexOutput vo2 = vertexOutput[triThread + 2];
+	FLOAT3 q = (ndc1 - ndc2) / 2;
 
-	AABB aabb = DeviceGetAABB(vo0, vo1, vo2, width, height);
+	FLOAT3 p0toq = ndc0 - q;
+	FLOAT3 p0top1 = ndc0 - ndc1;
+	FLOAT3 p0top2 = ndc0 - ndc2;
 
-	if (index >= triangleCount)
-	{
-		return;
-	}
+	FLOAT3 result;
 
-	triangleBuffer[index] = Renderer::Triangle(vo0, vo1, vo2, aabb);
+	float s0 = Float3Dot(p0toq, p0top1);
+	float s1 = Float3Dot(p0top2, p0top2);
+	float s2 = Float3Dot(p0top1, p0top1);
+	float s3 = Float3Dot(p0top1, p0top2);
+	float s4 = Float3Dot(p0toq, p0top2);
 
-	return;
+	result.x = ((s0 * s1) - (s4 * s3)) / ((s2 * s1) - (s3 * s3));
+	result.y = ((s4 * s2) - (s0 * s3)) / ((s2 * s1) - (s3 * s3));
+
+	return result;
+
 }
 
-__global__ void KernelDepth(DWORD* depth, unsigned int width, unsigned int height, Renderer::Triangle* triangles, unsigned int triangleCount, FLOAT4X4 projection)
-{
-	unsigned int dispatchThreads = gridDim.y * gridDim.x * blockDim.x * blockDim.y;
-	unsigned int threadPerTriangle = dispatchThreads / triangleCount;
-
-	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-	int threadId = blockId * (blockDim.x * blockDim.y)
-		+ (threadIdx.y * blockDim.x) + threadIdx.x;
-
-	unsigned int triIndex = (threadId / threadPerTriangle);
-
-	if (triIndex >= triangleCount)
-	{
-		return;
-	}
-
-	Renderer::Triangle triangle = triangles[triIndex];
-
-	FLOAT4 project0 = triangle.FragmentInput[0].Position;
-	FLOAT4 project1 = triangle.FragmentInput[1].Position;
-	FLOAT4 project2 = triangle.FragmentInput[2].Position;
-
-	const float fn0 = projection._33;
-	const float fn1 = projection._34;
-
-	float depth0 = fn0 + (1.0f / project0.z) * fn1;
-	float depth1 = fn0 + (1.0f / project1.z) * fn1;
-	float depth2 = fn0 + (1.0f / project2.z) * fn1;
-
-	FLOAT3 ndc0 = HomogeneousToNDC(project0);
-	FLOAT3 ndc1 = HomogeneousToNDC(project1);
-	FLOAT3 ndc2 = HomogeneousToNDC(project2);
-
-	INT2 c0 = NDCToClipSpace(ndc0, width, height);
-	INT2 c1 = NDCToClipSpace(ndc1, width, height);
-	INT2 c2 = NDCToClipSpace(ndc2, width, height);
-
-	unsigned int index0 = (c0.y * width) + c0.x;
-	unsigned int index1 = (c1.y * width) + c1.x;
-	unsigned int index2 = (c2.y * width) + c2.x;
-
-	DeviceSetPixel(depth, index0, PackDepth(depth0));
-	DeviceSetPixel(depth, index1, PackDepth(depth1));
-	DeviceSetPixel(depth, index2, PackDepth(depth2));
-}
-
-__global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth, unsigned int width, unsigned int height, SampleVertex* vertices, VertexOutput* output, unsigned int* indices, unsigned int vertexCount, unsigned int indexCount, FLOAT4X4 Transform, FLOAT4X4 View, FLOAT4X4 Projection)
+__global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
+	Renderer::Triangle* triangles,
+	unsigned int width, unsigned int height,
+	SampleVertex* vertices, VertexOutput* output,
+	unsigned int* indices, unsigned int vertexCount,
+	unsigned int indexCount, FLOAT4X4 Transform,
+	FLOAT4X4 View, FLOAT4X4 Projection)
 {
 	unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;//blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 	unsigned int triThread = index * 3;
@@ -528,13 +575,19 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth, unsigned in
 	VertexOutput o0 = VertexOutput(position0, normal0, texcoord0);
 	VertexOutput o1 = VertexOutput(position1, normal1, texcoord1);
 	VertexOutput o2 = VertexOutput(position2, normal2, texcoord2);
-//33, 34
+	//33, 34
 
 	output[triThread] = o0;
 	output[triThread + 1] = o1;
 	output[triThread + 2] = o2;
 
 	//return;
+
+	AABB aabb = DeviceGetAABB(o0, o1, o2, width, height);
+	FLOAT3 barycentric = DeviceGetBarycentric(o0.Position, o1.Position, o2.Position);
+
+	triangles[index] = Renderer::Triangle(o0, o1, o2, aabb, barycentric);
+
 
 	// testing project to clip space transform
 	FLOAT3 ndcPosition0 = HomogeneousToNDC(position0);
@@ -544,7 +597,6 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth, unsigned in
 	INT2 point0 = NDCToClipSpace(ndcPosition0, width, height);
 	INT2 point1 = NDCToClipSpace(ndcPosition1, width, height);
 	INT2 point2 = NDCToClipSpace(ndcPosition2, width, height);
-
 
 	//DeviceDrawLine(buffer, point0, point1, width, height, ColorRGBA(1, 0, 0, 0));
 
@@ -620,13 +672,16 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::sh
 
 	unsigned int* indices = reinterpret_cast<unsigned int*>(indexBuffer->GetVirtual());
 
-	KernelTransformVertices << <transformGrid, transformBlock >> > (CAST_PIXEL(buffer), CAST_PIXEL(depth), width, height, sampleVertices, outputVertices, indices, vertexCount, indexCount, transform, view, projection);
-	cudaDeviceSynchronize();
+	KernelTransformVertices << <transformGrid, transformBlock >> >
+		(CAST_PIXEL(buffer), CAST_PIXEL(depth),
+			triangles, width, height,
+			sampleVertices, outputVertices,
+			indices, vertexCount, indexCount,
+			transform, view, projection);
 
-	KernelInputAssembly << <transformGrid, transformBlock >> > (totalThread, outputVertices, triangles, width, height);
 	cudaDeviceSynchronize();
-
-	KernelDepth << <rasterGrid, rasterBlock >> > (CAST_PIXEL(depth), width, height, triangles, indexCount / 3, projection);
+	//KernelDepth << <rasterGrid, rasterBlock >> > (CAST_PIXEL(depth), width, height, triangles, totalThread, projection);
+	//cudaDeviceSynchronize();
 
 	KernelRasterize << <rasterGrid, rasterBlock >> >
 		(CAST_PIXEL(buffer), CAST_PIXEL(depth), width, height, triangles, totalThread, projection);
