@@ -41,6 +41,11 @@ struct INT2
 	int y;
 };
 
+inline float __device__ __host__ Int2Distance(const INT2& p1, const INT2& p2)
+{
+	return sqrtf((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+}
+
 struct FLOAT2
 {
 	__device__ __host__ FLOAT2(const FLOAT2& right)
@@ -245,6 +250,11 @@ inline __device__ __host__ void  operator/=(FLOAT2& v, float s)
 	v.y /= s;
 }
 
+inline __device__ __host__ float Float2Distance(const FLOAT2& v1, const FLOAT2& v2)
+{
+	return sqrt((v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y));
+}
+
 //---------------------------------------------------------------
 // FLOAT3
 
@@ -294,6 +304,11 @@ inline __device__ __host__ void  operator/=(FLOAT3& v, float s)
 	v.x /= s;
 	v.y /= s;
 	v.z /= s;
+}
+
+inline __device__ __host__ float Float3Distance(const FLOAT3& v1, const FLOAT3& v2)
+{
+	return sqrt((v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y) + (v1.z - v2.z) * (v1.z - v2.z));
 }
 
 //---------------------------------------------------------------
