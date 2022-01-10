@@ -50,6 +50,11 @@ inline float __device__ __host__ Int2Distance(const INT2& p1, const INT2& p2)
 	return sqrtf((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
 }
 
+inline INT2 __device__ __host__ operator-(const INT2& p1, const INT2& p2)
+{
+	return INT2(p1.x - p2.x, p1.y - p2.y);
+}
+
 struct FLOAT2
 {
 	__device__ __host__ FLOAT2(const FLOAT2& right)
