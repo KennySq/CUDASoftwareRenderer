@@ -178,7 +178,7 @@ inline __device__ DWORD DeviceGetPixel(DWORD* buffer, unsigned int pointIndex)
 	return buffer[pointIndex];
 }
 
-__device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, unsigned int width, unsigned int height)
+__device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, unsigned int width, unsigned int height, const ColorRGBA& debugColor)
 {
 	INT2 from = p0;
 	INT2 to = p1;
@@ -227,7 +227,7 @@ __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, u
 		{
 			unsigned int index = (y * width) + x;
 
-			DeviceSetPixel(buffer, index, ColorRGBA(1, 1, 1, 1));
+			DeviceSetPixel(buffer, index, debugColor);
 
 			x += sx;
 			r += dy;
@@ -245,7 +245,7 @@ __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, u
 		{
 			unsigned int index = (y * width) + x;
 
-			DeviceSetPixel(buffer, index, ColorRGBA(1, 1, 1, 1));
+			DeviceSetPixel(buffer, index, debugColor);
 
 			y += sy;
 			r += dx;
@@ -261,7 +261,8 @@ __device__  void DeviceDrawLine(DWORD* buffer, const INT2& p0, const INT2& p1, u
 
 __device__ void DeviceFillBottomFlatTriangle(DWORD* buffer,
 	const INT2& p0, const INT2& p1, const INT2& p2,
-	unsigned int width, unsigned int height, unsigned int threadId)
+	unsigned int width, unsigned int height, unsigned int threadId,
+	const ColorRGBA& debugColor)
 {
 	int p0yOffset = p0.y - threadId;
 
@@ -280,12 +281,13 @@ __device__ void DeviceFillBottomFlatTriangle(DWORD* buffer,
 
 	INT2 begin = INT2(curx0, p0yOffset);
 	INT2 end = INT2(curx1, p0yOffset);
-	DeviceDrawLine(buffer, begin, end, width, height);
+	DeviceDrawLine(buffer, begin, end, width, height, debugColor);
 }
 
 __device__ void DeviceFillTopFlatTriangle(DWORD* buffer,
 	const INT2& p0, const INT2& p1, const INT2& p2,
-	unsigned int width, unsigned int height, unsigned int threadId)
+	unsigned int width, unsigned int height, unsigned int threadId,
+	const ColorRGBA& debugColor)
 {
 	int p2yOffset = p2.y + threadId;
 
@@ -304,7 +306,7 @@ __device__ void DeviceFillTopFlatTriangle(DWORD* buffer,
 
 	INT2 begin = INT2(curx0, p2yOffset);
 	INT2 end = INT2(curx1, p2yOffset);
-	DeviceDrawLine(buffer, begin, end, width, height);
+	DeviceDrawLine(buffer, begin, end, width, height, debugColor);
 }
 
 
@@ -336,12 +338,12 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer,
 
 	if (cp2.y == cp1.y)
 	{
-		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, cp2, width, height, threadId);
+		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, cp2, width, height, threadId, ColorRGBA(1,0,0,0) );
 	}
 
 	else if (cp0.y == cp1.y)
 	{
-		DeviceFillTopFlatTriangle(buffer, cp0, cp1, cp2, width, height, threadId);
+		DeviceFillTopFlatTriangle(buffer, cp0, cp1, cp2, width, height, threadId, ColorRGBA(0, 1, 0, 0));
 	}
 	else
 	{
@@ -350,8 +352,8 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer,
 
 		INT2 mid = INT2(midx, midy);
 
-		DeviceFillTopFlatTriangle(buffer, mid, cp1, cp2, width, height, threadId);
-		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, mid, width, height, threadId);
+		DeviceFillTopFlatTriangle(buffer, mid, cp1, cp2, width, height, threadId, ColorRGBA(0,0, 1, 0));
+		DeviceFillBottomFlatTriangle(buffer, cp0, cp1, mid, width, height, threadId, ColorRGBA(0, 0, 1, 0));
 	}
 }
 
@@ -405,23 +407,23 @@ __global__ void KernelDepth(DWORD* depth, unsigned int width, unsigned int heigh
 
 	INT2 pixelId = INT2(xi, yi);
 
-	float dist0 = Float3Distance(ndc0, );
-	float dist1 = Float3Distance(ndc1, );
-	float dist2 = Float3Distance(ndc2, );
+	//float dist0 = Float3Distance(ndc0, );
+	//float dist1 = Float3Distance(ndc1, );
+	//float dist2 = Float3Distance(ndc2, );
 
-	float weight0 = 1.0f / dist0;
-	float weight1 = 1.0f / dist1;
-	float weight2 = 1.0f / dist2;
+	//float weight0 = 1.0f / dist0;
+	//float weight1 = 1.0f / dist1;
+	//float weight2 = 1.0f / dist2;
 
-	float intDepth = (depth0 + depth1 + depth2) / (weight0 + weight1 + weight2);
+	//float intDepth = (depth0 + depth1 + depth2) / (weight0 + weight1 + weight2);
 
 
-	float evalDepth = DeviceGetPixel(depth, scanlineIndex);
+	//float evalDepth = DeviceGetPixel(depth, scanlineIndex);
 
-	if (intDepth < evalDepth)
-	{
-		depth[scanlineIndex] = PackDepth(intDepth);
-	}
+	//if (intDepth < evalDepth)
+	//{
+	//	depth[scanlineIndex] = PackDepth(intDepth);
+	//}
 
 }
 
@@ -588,8 +590,6 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 
 	triangles[index] = Renderer::Triangle(o0, o1, o2, aabb, barycentric);
 
-
-	// testing project to clip space transform
 	FLOAT3 ndcPosition0 = HomogeneousToNDC(position0);
 	FLOAT3 ndcPosition1 = HomogeneousToNDC(position1);
 	FLOAT3 ndcPosition2 = HomogeneousToNDC(position2);

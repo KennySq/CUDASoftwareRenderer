@@ -24,7 +24,7 @@ void Engine::Start()
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 
-	workingPath += "\\CUDASoftwareRenderer\\assets\\sphere.fbx";
+	workingPath += "\\CUDASoftwareRenderer\\assets\\cube.fbx";
 
 	FbxLoader sampleLoader(workingPath.c_str());
 
@@ -43,8 +43,6 @@ void Engine::Start()
 	mIndexBuffer = mResources->CreateBuffer(sizeof(unsigned int), mIndexCount, sampleLoader.Indices.data());
 	mFragmentBuffer = mResources->CreateBuffer(sizeof(VertexOutput), mVertexCount);
 	mTriangleBuffer = mResources->CreateBuffer(sizeof(Renderer::Triangle), mIndexCount / 3);
-
-	DWORD packedDepth = PackDepth(0.998f);
 }
 
 void Engine::Update(float delta, float time)
@@ -56,13 +54,13 @@ void Engine::Update(float delta, float time)
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 	//mRenderer->Present();
 
-	view._43 = 10.0f;
+	view._43 = 4.0f;
 	/*
 	view._42 = -2.0f;
 	view._41 = -4.0f;*/
 	transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
-	transform = Float4x4Multiply(transform, Float4x4RotationY(delta));
-	transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
+//	transform = Float4x4Multiply(transform, Float4x4RotationY(delta));
+//	transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
 
 	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mFragmentBuffer, mTriangleBuffer, mVertexCount, mIndexCount, transform, view, projection);
 	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
