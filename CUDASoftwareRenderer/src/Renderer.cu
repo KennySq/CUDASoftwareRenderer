@@ -154,7 +154,7 @@ void Renderer::ClearDepth()
 	dim3 block = dim3(32, 18, 1);
 	dim3 grid = dim3(width / block.x, height / block.y, 1);
 
-	KernelClearDepth << <grid, block >> > (depth, width, height, 1.0f);
+	KernelClearDepth << <grid, block >> > (depth, width, height, 0.0f);
 }
 
 void Renderer::Present()
@@ -180,9 +180,9 @@ inline __device__ DWORD DeviceGetPixel(DWORD* buffer, unsigned int pointIndex)
 
 __device__ void DeviceGetTriangleDepth(const Renderer::Triangle& triangle, float& d0, float& d1, float& d2)
 {
-	d0 = 1.0f / HomogeneousToNDC(triangle.FragmentInput[0].Position).z;
-	d1 = 1.0f / HomogeneousToNDC(triangle.FragmentInput[1].Position).z;
-	d2 = 1.0f / HomogeneousToNDC(triangle.FragmentInput[2].Position).z;
+	d0 = HomogeneousToNDC(triangle.FragmentInput[0].Position).z;
+	d1 = HomogeneousToNDC(triangle.FragmentInput[1].Position).z;
+	d2 = HomogeneousToNDC(triangle.FragmentInput[2].Position).z;
 }
 
 
@@ -209,7 +209,7 @@ __device__ float DeviceInterpolateDepth(unsigned int width, unsigned int height,
 
 	float avg = (d0 + d1 + d2) / (weight0 + weight1 + weight2);
 
-	return 1.0f / avg;
+	return avg;
 }
 
 __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth, 
@@ -265,8 +265,9 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 			unsigned int index = (point.y * width) + point.x;
 
 			float d = DeviceInterpolateDepth(width, height, triangle, point);
-			if (d < DeviceGetDepth(depth, point, width))
+			if (d > DeviceGetDepth(depth, point, width))
 			{
+				DeviceSetPixel(depth, index, PackDepth(d));
 				DeviceSetPixel(buffer, index, debugColor);
 			}
 
@@ -287,8 +288,9 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 			unsigned int index = (point.y * width) + point.x;
 			float d = DeviceInterpolateDepth(width, height, triangle, point);
 
-			if (d < DeviceGetDepth(depth, point, width))
+			if (d > DeviceGetDepth(depth, point, width))
 			{
+				DeviceSetPixel(depth, index, PackDepth(d));
 				DeviceSetPixel(buffer, index, debugColor);
 			}
 			point.y += sy;
