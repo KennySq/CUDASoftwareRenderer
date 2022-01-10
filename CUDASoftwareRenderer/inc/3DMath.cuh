@@ -25,6 +25,10 @@ struct INT2
 	{
 		return x + y < right.x + right.y;
 	}
+
+	__device__ __host__ INT2()
+	{
+	}
 	__device__ __host__ INT2(int _x, int _y)
 		: x(_x), y(_y)
 	{
