@@ -24,13 +24,13 @@ void Engine::Start()
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 
-	workingPath += "\\CUDASoftwareRenderer\\assets\\sphere.fbx";
+	workingPath += "\\CUDASoftwareRenderer\\assets\\cube.fbx";
 
 	FbxLoader sampleLoader(workingPath.c_str());
 
 	mVertexCount = sampleLoader.Vertices.size();
 	mIndexCount = sampleLoader.Indices.size();
-	
+
 	std::vector<SampleVertex> vertices;
 
 	for (unsigned int i = 0; i < mVertexCount; i++)
@@ -56,7 +56,7 @@ void Engine::Update(float delta, float time)
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 	//mRenderer->Present();
 
-	view._43 = 10.0f;
+	view._43 = 3.0f;
 	/*
 	view._42 = -2.0f;
 	view._41 = -4.0f;*/
