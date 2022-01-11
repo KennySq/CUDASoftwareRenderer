@@ -267,6 +267,11 @@ inline __device__ __host__ float Float2Distance(const FLOAT2& v1, const FLOAT2& 
 //---------------------------------------------------------------
 // FLOAT3
 
+inline __device__ __host__ FLOAT3 operator-(const FLOAT3& v)
+{
+	return FLOAT3(-v.x, -v.y, -v.z);
+}
+
 inline __device__ __host__ FLOAT3  operator+(const FLOAT3& v1, const FLOAT3& v2)
 {
 	return FLOAT3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
