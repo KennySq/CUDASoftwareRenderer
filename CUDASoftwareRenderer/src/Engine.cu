@@ -54,18 +54,16 @@ void Engine::Update(float delta, float time)
 	static FLOAT4X4 transform = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
-	//mRenderer->Present();
+	
+	view._42 = -1.0f;
+	view._43 = 50.0f + (sin(time) * 20.0f);
 
-	view._43 = 60.0f;
-	/*
-	view._42 = -2.0f;
-	view._41 = -4.0f;*/
 	//transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
 	transform = Float4x4Multiply(transform, Float4x4RotationY(delta));
 	//transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
 
 	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mFragmentBuffer, mTriangleBuffer, mVertexCount, mIndexCount, transform, view, projection);
-//	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
+	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
 
 	
 }
