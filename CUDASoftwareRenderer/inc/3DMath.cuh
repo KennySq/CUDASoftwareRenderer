@@ -405,6 +405,12 @@ float __device__ __host__ inline  Float3Length(const FLOAT3& v)
 	return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
+FLOAT3 __device__ __host__ inline Float3Normalize(const FLOAT3& v)
+{
+	return v / Float3Length(v);
+}
+
+
 float __device__ __host__ inline  Float4Length(const FLOAT4& v)
 {
 
@@ -423,6 +429,11 @@ float __device__ __host__ inline  Float3Dot(const FLOAT3& v1, const FLOAT3& v2)
 float __device__ __host__ inline  Float4Dot(const FLOAT4& v1, const FLOAT4& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z + v1.w * v2.w;
+}
+
+FLOAT4 __device__ __host__ inline Float4Normalize(const FLOAT4& v)
+{
+	return v / Float4Length(v);
 }
 
 FLOAT4 __device__ __host__ inline  Float4Multiply(const FLOAT4& v, const FLOAT4X4& m)
@@ -518,6 +529,11 @@ FLOAT4X4 __device__ __host__ inline  Float4x4Multiply(const FLOAT4X4& m1, const 
 	mat._44 = m1._41 * m2._14 + m1._42 * m2._24 + m1._43 * m2._34 + m1._44 * m2._44;
 
 	return mat;
+}
+
+FLOAT4X4 __device__ __host__ inline Float4x4Multiply(const FLOAT4X4& m, float s)
+{
+	return FLOAT4X4(m._11 * s, m._12 * s, m._13 * s, m._14 * s, m._21 * s, m._22 * s, m._23 * s, m._24 * s, m._31 * s, m._32 * s, m._33 * s, m._34 * s, m._41 * s, m._42 * s, m._43 * s, m._44 * s);
 }
 
 FLOAT4X4 __device__ __host__ inline  Float4x4ViewMatrix(float pitch, float yaw, float roll)
