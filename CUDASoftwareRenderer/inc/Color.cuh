@@ -55,3 +55,8 @@ inline __device__ __host__ DWORD PackDepth(float depth)
 
 	return result;
 }
+
+inline __device__ __host__ float UnpackDepth(DWORD packed)
+{
+	return *reinterpret_cast<float*>(&packed);
+}
