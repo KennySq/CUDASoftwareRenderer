@@ -40,8 +40,8 @@ public:
 
 		}
 
-		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB& aabb, const FLOAT3& barycentric)
-			: Bound(aabb), Barycentric(barycentric)
+		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB& aabb, const FLOAT3& barycentric, const FLOAT3& surfaceNormal)
+			: Bound(aabb), Barycentric(barycentric), SurfaceNormal(surfaceNormal)
 		{
 			FragmentInput[0] = vo0;
 			FragmentInput[1] = vo1;
@@ -49,7 +49,7 @@ public:
 		}
 
 		__device__ __host__ Triangle(const Triangle& right)
-			: Bound(right.Bound), Barycentric(right.Barycentric)
+			: Bound(right.Bound), Barycentric(right.Barycentric), SurfaceNormal(right.SurfaceNormal)
 		{
 			FragmentInput[0] = right.FragmentInput[0];
 			FragmentInput[1] = right.FragmentInput[1];
@@ -59,6 +59,7 @@ public:
 		VertexOutput FragmentInput[3];
 		AABB Bound;
 		FLOAT3 Barycentric;
+		FLOAT3 SurfaceNormal;
 	};
 	
 	Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs);

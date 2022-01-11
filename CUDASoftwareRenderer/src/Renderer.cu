@@ -154,7 +154,7 @@ void Renderer::ClearDepth()
 	dim3 block = dim3(32, 18, 1);
 	dim3 grid = dim3(width / block.x, height / block.y, 1);
 
-	KernelClearDepth << <grid, block >> > (depth, width, height, 1.0f);
+	KernelClearDepth << <grid, block >> > (depth, width, height, 0.0f);
 }
 
 void Renderer::Present()
@@ -193,7 +193,7 @@ __device__ float DeviceGetDepth(DWORD* depth, const INT2& point, unsigned int wi
 	return depth[PointToIndex(point, width)];
 }
 
-__device__ void DeviceGetBarycentrics(const INT2& p4, const INT2& p0, const INT2& p1, const INT2& p2, float& u, float& v, float& w)
+__device__ void DeviceGetBarycentricAreas(const INT2& p4, const INT2& p0, const INT2& p1, const INT2& p2, float& u, float& v, float& w)
 {
 	INT2 ps0 = p1 - p0;
 	INT2 ps1 = p2 - p0;
@@ -217,9 +217,13 @@ __device__ void DeviceGetBarycentrics(const INT2& p4, const INT2& p0, const INT2
 __device__ float DeviceInterpolateDepth(unsigned int width, unsigned int height,
 	const Renderer::Triangle& triangle, const INT2& point)
 {
-	FLOAT3 ndc0 = HomogeneousToNDC(triangle.FragmentInput[0].Position);
-	FLOAT3 ndc1 = HomogeneousToNDC(triangle.FragmentInput[1].Position);
-	FLOAT3 ndc2 = HomogeneousToNDC(triangle.FragmentInput[2].Position);
+	FLOAT4 projected0 = triangle.FragmentInput[0].Position;
+	FLOAT4 projected1 = triangle.FragmentInput[1].Position;
+	FLOAT4 projected2 = triangle.FragmentInput[2].Position;
+
+	FLOAT3 ndc0 = HomogeneousToNDC(projected0);
+	FLOAT3 ndc1 = HomogeneousToNDC(projected1);
+	FLOAT3 ndc2 = HomogeneousToNDC(projected2);
 
 	INT2 clip0 = NDCToClipSpace(ndc0, width, height);
 	INT2 clip1 = NDCToClipSpace(ndc1, width, height);
@@ -227,23 +231,13 @@ __device__ float DeviceInterpolateDepth(unsigned int width, unsigned int height,
 
 	float u, v, w;
 
-	DeviceGetBarycentrics(point, clip0, clip1, clip2, u, v, w);
+	DeviceGetBarycentricAreas(point, clip0, clip1, clip2, u, v, w);
 
-	FLOAT3 p = FLOAT3(u, v, w);
+	FLOAT3 barycentric = FLOAT3(u, v, w);
 
-	float interp = (p.x * ndc0.z + p.y * ndc1.z + p.z * ndc1.z);
-
-	return interp * 100.0f;
-
-	//float weight0 = Float3Distance(HomogeneousToNDC(triangle.FragmentInput[0].Position), p);
-	//float weight1 = Float3Distance(HomogeneousToNDC(triangle.FragmentInput[1].Position), p);
-	//float weight2 = Float3Distance(HomogeneousToNDC(triangle.FragmentInput[2].Position), p);
-
-	//float d0, d1, d2;
-
-	//DeviceGetTriangleDepth(triangle, d0, d1, d2);
-
-	//float avg = (d0 + d1 + d2) / (weight0 + weight1 + weight2);
+	float z = -(barycentric.x * projected0.z + barycentric.y * projected1.z + barycentric.z * projected2.z);
+	
+	return 1.0f / z;
 }
 
 __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth, 
@@ -251,7 +245,6 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 	const Renderer::Triangle& triangle, 
 	unsigned int width, unsigned int height, const ColorRGBA& debugColor)
 {
-	
 	INT2 from = p0;
 	INT2 to = p1;
 
@@ -294,7 +287,7 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 
 	if (dx > dy)
 	{
-		for (int i = 0; i < d; i++)
+		for (int i = 0; i <= d; i++)
 		{
 			unsigned int index = (point.y * width) + point.x;
 
@@ -311,7 +304,7 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 			point.x += sx;
 			r += dy;
 
-			if (r >= dx)
+			if (r > dx)
 			{
 				point.y += sy;
 				r -= dx;
@@ -320,14 +313,13 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 	}
 	else
 	{
-		for (int i = 0; i < d; i++)
+		for (int i = 0; i <= d; i++)
 		{
 			unsigned int index = (point.y * width) + point.x;
 			float d = DeviceInterpolateDepth(width, height, triangle, point);
 			int packed = PackDepth(d);
 
 			atomicMax(reinterpret_cast<int*>(&depth[index]), packed);
-
 			if (depth[index] == packed)
 			{
 				DeviceSetPixel(buffer, index, debugColor);
@@ -351,15 +343,15 @@ __device__ void DeviceFillBottomFlatTriangle(DWORD* buffer, DWORD* depth,
 {
 	int p0yOffset = p0.y - threadId;
 
-	float invSlope0 = (p1.x - p0.x) / floor((float)(p1.y - p0.y));
-	float invSlope1 = (p2.x - p0.x) / floor((float)(p2.y - p0.y));
+	float invSlope0 = ((p1.x - p0.x) / (float)(p1.y - p0.y));
+	float invSlope1 = ((p2.x - p0.x) / (float)(p2.y - p0.y));
 
-	float curx0 = p0.x - (invSlope0 * (float)threadId);
-	float curx1 = p0.x - (invSlope1 * (float)threadId);
+	float curx0 = p0.x - (invSlope0 * threadId);
+	float curx1 = p0.x - (invSlope1 * threadId);
 
-	unsigned int scanlineOffset = p0.y - p2.y;
+	int scanlineOffset = p0.y - p2.y;
 
-	if (threadId > scanlineOffset || p0yOffset < p2.y || p0yOffset < 0)
+	if (threadId > scanlineOffset || p0yOffset < p2.y || p0yOffset < 1)
 	{
 		return;
 	}
@@ -437,12 +429,12 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer, DWORD* depth, const Rend
 
 	if (cp2.y == cp1.y)
 	{
-		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(1, 0, 0, 0));
+		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
 	}
 
 	else if (cp0.y == cp1.y)
 	{
-		DeviceFillTopFlatTriangle(buffer,depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(0, 1, 0, 0));
+		DeviceFillTopFlatTriangle(buffer,depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
 	}
 	else
 	{
@@ -451,12 +443,20 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer, DWORD* depth, const Rend
 
 		INT2 mid = INT2(midx, midy);
 
-		DeviceFillTopFlatTriangle(buffer, depth, mid, cp1, cp2, triangle, width, height, threadId, ColorRGBA(0,0,1,0));
-		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, mid, triangle, width, height, threadId, ColorRGBA(0, 0, 1, 0));
+		DeviceFillTopFlatTriangle(buffer, depth, mid, cp1, cp2, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
+		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, mid, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
 	}
 }
 
-__global__ void KernelRasterize(DWORD* buffer, DWORD* depth, unsigned int width, unsigned int height, Renderer::Triangle* triangles, unsigned int triangleCount, const FLOAT4X4& projection)
+__device__ FLOAT3 DeviceGetSurfaceNormal(const FLOAT3& p0, const FLOAT3& p1, const FLOAT3& p2)
+{
+	FLOAT3 u = p1 - p0;
+	FLOAT3 v = p2 - p0;
+
+	return FLOAT3((u.y * v.z) - (u.z * v.y), (u.z * v.x) - (u.x * v.z), (u.x * v.y) - (u.y * v.x));
+}
+
+__global__ void KernelRasterize(DWORD* buffer, DWORD* depth, unsigned int width, unsigned int height, Renderer::Triangle* triangles, unsigned int triangleCount, FLOAT4X4 view)
 {
 	unsigned int dispatchThreads = gridDim.y * gridDim.x * blockDim.x * blockDim.y;
 	unsigned int threadPerTriangle = dispatchThreads / triangleCount;
@@ -471,8 +471,26 @@ __global__ void KernelRasterize(DWORD* buffer, DWORD* depth, unsigned int width,
 	{
 		return;
 	}
-
+	
 	Renderer::Triangle triangle = triangles[triIndex];
+
+	float determ = Float4x4Determinant(view);
+
+	if (determ != 0.0f)
+	{
+		FLOAT4X4 viewInv = Float4x4Multiply(view, (1.0f / determ));
+	
+		FLOAT3 viewPos = FLOAT3(viewInv._41, viewInv._42, viewInv._43);
+		FLOAT3 dir = FLOAT3(-1, 0, 0);
+		if (Float3Dot(dir, triangle.SurfaceNormal) < 0.0f)
+		{
+			return;
+		}
+
+	}
+
+
+
 
 	int scanlineIndex = threadId % threadPerTriangle;
 
@@ -595,8 +613,8 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 
 	AABB aabb = DeviceGetAABB(o0, o1, o2, width, height);
 	FLOAT3 barycentric = DeviceGetBarycentric(o0.Position, o1.Position, o2.Position);
-
-	triangles[index] = Renderer::Triangle(o0, o1, o2, aabb, barycentric);
+	FLOAT3 surfaceNormal = DeviceGetSurfaceNormal(v0.Position, v1.Position, v2.Position);
+	triangles[index] = Renderer::Triangle(o0, o1, o2, aabb, barycentric, surfaceNormal);
 
 	// testing project to clip space transform
 	FLOAT3 ndcPosition0 = HomogeneousToNDC(position0);
@@ -607,11 +625,9 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	INT2 point1 = NDCToClipSpace(ndcPosition1, width, height);
 	INT2 point2 = NDCToClipSpace(ndcPosition2, width, height);
 
-	//DeviceDrawLine(buffer, depth, point0, point1, triangles[index], width, height, ColorRGBA(1, 0, 0, 0));
-
-	//DeviceDrawLine(buffer, depth, point1, point2, triangles[index], width, height, ColorRGBA(0, 1, 0, 0));
-
-	//DeviceDrawLine(buffer, depth, point2, point0, triangles[index], width, height, ColorRGBA(0, 0, 1, 0));
+	DeviceDrawLine(buffer, depth, point0, point1, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));
+	DeviceDrawLine(buffer, depth, point1, point2, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));
+	DeviceDrawLine(buffer, depth, point2, point0, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));
 
 	return;
 }
