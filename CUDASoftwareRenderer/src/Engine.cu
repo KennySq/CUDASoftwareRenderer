@@ -24,7 +24,7 @@ void Engine::Start()
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 
-	workingPath += "\\CUDASoftwareRenderer\\assets\\cube.fbx";
+	workingPath += "\\CUDASoftwareRenderer\\assets\\steve.fbx";
 
 	FbxLoader sampleLoader(workingPath.c_str());
 
@@ -51,21 +51,23 @@ void Engine::Update(float delta, float time)
 {
 	mRenderer->ClearCanvas(ColorRGBA(0.0f, 0.0f, 0.0f, 0.0f));
 	mRenderer->ClearDepth();
-	static FLOAT4X4 transform = FLOAT4X4::Identity();//Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
+	static FLOAT4X4 transform = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 	//mRenderer->Present();
 
-	view._43 = 5.0f;
+	view._43 = 60.0f;
 	/*
 	view._42 = -2.0f;
 	view._41 = -4.0f;*/
-	transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
-	//transform = Float4x4Multiply(transform, Float4x4RotationY(delta));
+	//transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
+	transform = Float4x4Multiply(transform, Float4x4RotationY(delta));
 	//transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
 
 	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mFragmentBuffer, mTriangleBuffer, mVertexCount, mIndexCount, transform, view, projection);
-	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
+//	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
+
+	
 }
 
 void Engine::Render(float delta)
@@ -76,4 +78,10 @@ void Engine::Render(float delta)
 
 void Engine::Destroy()
 {
+}
+
+void Engine::RButtonDown(int x, int y)
+{
+	std::string coord = std::string("(") + std::to_string(x) + ", " + std::to_string(y) + ")";
+	mRenderer->OutText(x, y, coord);
 }

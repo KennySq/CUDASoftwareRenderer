@@ -19,6 +19,8 @@ public:
 	void Update(float delta, float time);
 	void Render(float delta);
 	void Destroy();
+
+	void RButtonDown(int x, int y);
 private:
 	std::shared_ptr<DIB> mDIB;
 	
