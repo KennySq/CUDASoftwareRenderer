@@ -250,7 +250,6 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 
 	Clamp<int>(from.x, 0, width - 1);
 	Clamp<int>(from.y, 0, height - 1);
-
 	Clamp<int>(to.x, 0, width - 1);
 	Clamp<int>(to.y, 0, height - 1);
 
@@ -477,42 +476,32 @@ __global__ void KernelRasterize(DWORD* buffer, DWORD* depth,
 	Renderer::Triangle triangle = triangles[triIndex];
 
 	FLOAT3 viewDir = triangle.SurfaceNormal - viewPosition;
-	if (Float3Dot(Float3Normalize(viewDir), Float3Normalize(triangle.SurfaceNormal)) > 0.0f)
+	if (Float3Dot(Float3Normalize(viewDir), Float3Normalize(triangle.SurfaceNormal)) <= 0.0f)
 	{
 		return;
 	}
-
-
 
 	int scanlineIndex = threadId % threadPerTriangle;
 
 	DeviceDrawFilledTriangle(buffer, depth, triangle, width, height, scanlineIndex);
 }
 
-__device__ AABB DeviceGetAABB(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, unsigned int width, unsigned int height)
+__device__ AABB DeviceGetAABB(const INT2& c0, const INT2& c1, const INT2& c2)
 {
-	FLOAT3 ndc0 = HomogeneousToNDC(vo0.Position);
-	FLOAT3 ndc1 = HomogeneousToNDC(vo1.Position);
-	FLOAT3 ndc2 = HomogeneousToNDC(vo2.Position);
-
 	int maxX, maxY;
 	int minX, minY;
 
-	INT2 clip0 = NDCToClipSpace(ndc0, width, height);
-	INT2 clip1 = NDCToClipSpace(ndc1, width, height);
-	INT2 clip2 = NDCToClipSpace(ndc2, width, height);
+	maxX = max(c0.x, c1.x);
+	maxX = max(maxX, c2.x);
 
-	maxX = max(clip0.x, clip1.x);
-	maxX = max(maxX, clip2.x);
+	minX = min(c0.x, c1.x);
+	minX = min(minX, c2.x);
 
-	minX = min(clip0.x, clip1.x);
-	minX = min(minX, clip2.x);
+	maxY = max(c0.y, c1.y);
+	maxY = max(maxY, c2.y);
 
-	maxY = max(clip0.y, clip1.y);
-	maxY = max(maxY, clip2.y);
-
-	minY = min(clip0.y, clip1.y);
-	minY = min(minY, clip2.y);
+	minY = min(c0.y, c1.y);
+	minY = min(minY, c2.y);
 
 	return AABB(INT2(minX, minY), INT2(maxX, maxY));
 }
@@ -549,8 +538,7 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	unsigned int width, unsigned int height,
 	SampleVertex* vertices, VertexOutput* output,
 	unsigned int* indices, unsigned int vertexCount,
-	unsigned int indexCount, FLOAT4X4 Transform,
-	FLOAT4X4 View, FLOAT4X4 Projection)
+	unsigned int indexCount, FLOAT4X4 Transform, FLOAT4X4 MVP)
 {
 	unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;//blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 	unsigned int triThread = index * 3;
@@ -572,17 +560,11 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	FLOAT4 position1 = FLOAT4(v1.Position.x, v1.Position.y, v1.Position.z, 1.0f);
 	FLOAT4 position2 = FLOAT4(v2.Position.x, v2.Position.y, v2.Position.z, 1.0f);
 
-	position0 = Float4Multiply(position0, Transform);
-	position0 = Float4Multiply(position0, View);
-	position0 = Float4Multiply(position0, Projection);
+	position0 = Float4Multiply(position0, MVP);
 
-	position1 = Float4Multiply(position1, Transform);
-	position1 = Float4Multiply(position1, View);
-	position1 = Float4Multiply(position1, Projection);
+	position1 = Float4Multiply(position1, MVP);
 
-	position2 = Float4Multiply(position2, Transform);
-	position2 = Float4Multiply(position2, View);
-	position2 = Float4Multiply(position2, Projection);
+	position2 = Float4Multiply(position2, MVP);
 
 	FLOAT4 normal0 = FLOAT4(v0.Normal.x, v0.Normal.y, v0.Normal.z, 1.0f);
 	FLOAT4 normal1 = FLOAT4(v1.Normal.x, v1.Normal.y, v1.Normal.z, 1.0f);
@@ -602,17 +584,7 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	output[triThread + 2] = o2;
 
 	//return;
-
-	AABB aabb = DeviceGetAABB(o0, o1, o2, width, height);
-	FLOAT3 barycentric = DeviceGetBarycentric(o0.Position, o1.Position, o2.Position);
-	FLOAT3 surfaceNormal = DeviceGetSurfaceNormal(v0.Position, v1.Position, v2.Position);
-	FLOAT4 wolrdSurfaceNormal = Float4Multiply(FLOAT4(surfaceNormal.x, surfaceNormal.y, surfaceNormal.z, 1.0f), Transform);
-
-	surfaceNormal = FLOAT3(wolrdSurfaceNormal.x, wolrdSurfaceNormal.y, wolrdSurfaceNormal.z);
-
-	triangles[index] = Renderer::Triangle(o0, o1, o2, aabb, barycentric, surfaceNormal);
-
-	// testing project to clip space transform
+		// testing project to clip space transform
 	FLOAT3 ndcPosition0 = HomogeneousToNDC(position0);
 	FLOAT3 ndcPosition1 = HomogeneousToNDC(position1);
 	FLOAT3 ndcPosition2 = HomogeneousToNDC(position2);
@@ -621,9 +593,20 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	INT2 point1 = NDCToClipSpace(ndcPosition1, width, height);
 	INT2 point2 = NDCToClipSpace(ndcPosition2, width, height);
 
-	DeviceDrawLine(buffer, depth, point0, point1, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));
+	AABB aabb = DeviceGetAABB(point0, point1, point2);
+	FLOAT3 barycentric = DeviceGetBarycentric(o0.Position, o1.Position, o2.Position);
+	FLOAT3 surfaceNormal = DeviceGetSurfaceNormal(v0.Position, v1.Position, v2.Position);
+	FLOAT4 wolrdSurfaceNormal = Float4Multiply(FLOAT4(surfaceNormal.x, surfaceNormal.y, surfaceNormal.z, 1.0f), Transform);
+
+	surfaceNormal = FLOAT3(wolrdSurfaceNormal.x, wolrdSurfaceNormal.y, wolrdSurfaceNormal.z);
+
+	triangles[index] = Renderer::Triangle(o0, o1, o2, aabb, barycentric, surfaceNormal);
+
+
+
+	/*DeviceDrawLine(buffer, depth, point0, point1, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));
 	DeviceDrawLine(buffer, depth, point1, point2, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));
-	DeviceDrawLine(buffer, depth, point2, point0, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));
+	DeviceDrawLine(buffer, depth, point2, point0, triangles[index], width, height, ColorRGBA(0, 0, 0, 0));*/
 
 	return;
 }
@@ -696,27 +679,21 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
 
 	unsigned int* indices = reinterpret_cast<unsigned int*>(indexBuffer->GetVirtual());
 
+	float determView = Float4x4Determinant(view);
+	FLOAT4X4 invView = Float4x4Multiply(view, 1.0f / determView);
+	FLOAT3 viewPos = FLOAT3(invView._41, invView._42, invView._43);
+
+	FLOAT4X4 mvp = Float4x4Multiply(transform, view);
+	mvp = Float4x4Multiply(mvp, projection);
+
 	KernelTransformVertices << <transformGrid, transformBlock >> >
 		(CAST_PIXEL(buffer), CAST_PIXEL(depth),
 			triangles, width, height,
 			sampleVertices, outputVertices,
 			indices, vertexCount, indexCount,
-			transform, view, projection);
-
-	cudaDeviceSynchronize();
-	/*KernelDepth << <rasterGrid, rasterBlock >> > (CAST_PIXEL(depth), width, height, triangles, totalThread, projection);
-	cudaDeviceSynchronize();*/
-
-	float determView = Float4x4Determinant(view);
-
-	FLOAT4X4 invView = Float4x4Multiply(view, determView);
-
-	FLOAT3 viewPos = FLOAT3(invView._41, invView._42, invView._43);
-
+			transform, mvp);
 
 	KernelRasterize << <rasterGrid, rasterBlock >> >
 		(CAST_PIXEL(buffer), CAST_PIXEL(depth), 
-			width, height, triangles, totalThread,
-		viewPos);
-	cudaDeviceSynchronize();
+			width, height, triangles, totalThread, viewPos);
 }
