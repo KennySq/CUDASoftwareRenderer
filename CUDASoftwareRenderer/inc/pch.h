@@ -11,7 +11,7 @@
 #include "framework.h"
 
 #include<Windows.h>
-
+#include<windowsx.h>
 #include<iostream>
 #include<assert.h>
 #include<memory>
