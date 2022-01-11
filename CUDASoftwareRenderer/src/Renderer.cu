@@ -429,12 +429,12 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer, DWORD* depth, const Rend
 
 	if (cp2.y == cp1.y)
 	{
-		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
+		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(1, 1, 1, 1));
 	}
 
 	else if (cp0.y == cp1.y)
 	{
-		DeviceFillTopFlatTriangle(buffer,depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
+		DeviceFillTopFlatTriangle(buffer,depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(1, 1, 1, 1));
 	}
 	else
 	{
@@ -443,8 +443,8 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer, DWORD* depth, const Rend
 
 		INT2 mid = INT2(midx, midy);
 
-		DeviceFillTopFlatTriangle(buffer, depth, mid, cp1, cp2, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
-		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, mid, triangle, width, height, threadId, ColorRGBA(triangle.SurfaceNormal.x, triangle.SurfaceNormal.y, triangle.SurfaceNormal.z, 1));
+		DeviceFillTopFlatTriangle(buffer, depth, mid, cp1, cp2, triangle, width, height, threadId, ColorRGBA(1, 1, 1, 1));
+		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, mid, triangle, width, height, threadId, ColorRGBA(1, 1, 1, 1));
 	}
 }
 
@@ -456,7 +456,9 @@ __device__ FLOAT3 DeviceGetSurfaceNormal(const FLOAT3& p0, const FLOAT3& p1, con
 	return FLOAT3((u.y * v.z) - (u.z * v.y), (u.z * v.x) - (u.x * v.z), (u.x * v.y) - (u.y * v.x));
 }
 
-__global__ void KernelRasterize(DWORD* buffer, DWORD* depth, unsigned int width, unsigned int height, Renderer::Triangle* triangles, unsigned int triangleCount, FLOAT4X4 view)
+__global__ void KernelRasterize(DWORD* buffer, DWORD* depth, 
+	unsigned int width, unsigned int height, 
+	Renderer::Triangle* triangles, unsigned int triangleCount, FLOAT3 viewPosition)
 {
 	unsigned int dispatchThreads = gridDim.y * gridDim.x * blockDim.x * blockDim.y;
 	unsigned int threadPerTriangle = dispatchThreads / triangleCount;
@@ -474,21 +476,11 @@ __global__ void KernelRasterize(DWORD* buffer, DWORD* depth, unsigned int width,
 	
 	Renderer::Triangle triangle = triangles[triIndex];
 
-	float determ = Float4x4Determinant(view);
-
-	if (determ != 0.0f)
+	FLOAT3 viewDir = triangle.SurfaceNormal - viewPosition;
+	if (Float3Dot(Float3Normalize(viewDir), Float3Normalize(triangle.SurfaceNormal)) > 0.0f)
 	{
-		FLOAT4X4 viewInv = Float4x4Multiply(view, (1.0f / determ));
-	
-		FLOAT3 viewPos = FLOAT3(viewInv._41, viewInv._42, viewInv._43);
-		FLOAT3 dir = FLOAT3(-1, 0, 0);
-		if (Float3Dot(dir, triangle.SurfaceNormal) < 0.0f)
-		{
-			return;
-		}
-
+		return;
 	}
-
 
 
 
@@ -614,6 +606,10 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	AABB aabb = DeviceGetAABB(o0, o1, o2, width, height);
 	FLOAT3 barycentric = DeviceGetBarycentric(o0.Position, o1.Position, o2.Position);
 	FLOAT3 surfaceNormal = DeviceGetSurfaceNormal(v0.Position, v1.Position, v2.Position);
+	FLOAT4 wolrdSurfaceNormal = Float4Multiply(FLOAT4(surfaceNormal.x, surfaceNormal.y, surfaceNormal.z, 1.0f), Transform);
+
+	surfaceNormal = FLOAT3(wolrdSurfaceNormal.x, wolrdSurfaceNormal.y, wolrdSurfaceNormal.z);
+
 	triangles[index] = Renderer::Triangle(o0, o1, o2, aabb, barycentric, surfaceNormal);
 
 	// testing project to clip space transform
@@ -668,7 +664,12 @@ void Renderer::DrawScreen()
 	cudaDeviceSynchronize();
 }
 
-void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::shared_ptr<DeviceBuffer> indexBuffer, std::shared_ptr<DeviceBuffer> fragmentBuffer, std::shared_ptr<DeviceBuffer> triangleBuffer, unsigned int vertexCount, unsigned int indexCount, const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection)
+void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
+	std::shared_ptr<DeviceBuffer> indexBuffer, 
+	std::shared_ptr<DeviceBuffer> fragmentBuffer, 
+	std::shared_ptr<DeviceBuffer> triangleBuffer, 
+	unsigned int vertexCount, unsigned int indexCount, 
+	const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection)
 {
 	unsigned int width = mCanvas->GetWidth();
 	unsigned int height = mCanvas->GetHeight();
@@ -706,7 +707,16 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::sh
 	/*KernelDepth << <rasterGrid, rasterBlock >> > (CAST_PIXEL(depth), width, height, triangles, totalThread, projection);
 	cudaDeviceSynchronize();*/
 
+	float determView = Float4x4Determinant(view);
+
+	FLOAT4X4 invView = Float4x4Multiply(view, determView);
+
+	FLOAT3 viewPos = FLOAT3(invView._41, invView._42, invView._43);
+
+
 	KernelRasterize << <rasterGrid, rasterBlock >> >
-		(CAST_PIXEL(buffer), CAST_PIXEL(depth), width, height, triangles, totalThread, projection);
+		(CAST_PIXEL(buffer), CAST_PIXEL(depth), 
+			width, height, triangles, totalThread,
+		viewPos);
 	cudaDeviceSynchronize();
 }
