@@ -562,6 +562,8 @@ FLOAT4X4 __device__ __host__ inline  Float4x4ProjectionMatrix(float n, float f, 
 		0, 0, -1, 0);
 }
 
+//void __device__ __host__ inline Float4x4GetFrustum()
+
 FLOAT4X4 __device__ __host__ inline  Float4x4Transpose(const FLOAT4X4& other)
 {
 	return FLOAT4X4(other._11, other._21, other._31, other._41,
@@ -630,3 +632,54 @@ __device__ __host__ inline void Clamp(_Ty& t, _Ty min, _Ty max)
 		t = max;
 	}
 }
+
+// AABB
+
+struct AABB
+{
+	FLOAT3 Min;
+	FLOAT3 Max;
+
+	__device__ __host__ AABB(const FLOAT3& min, const FLOAT3& max)
+		: Min(min), Max(max)
+	{
+
+	}
+
+	__device__ __host__ AABB(const AABB& right)
+		: Min(right.Min), Max(right.Max)
+	{
+
+	}
+
+	__device__ __host__ AABB()
+	{
+
+	}
+};
+
+struct Frustum
+{
+	FLOAT3 Bottom;
+	FLOAT3 Top;
+	FLOAT3 Left;
+	FLOAT3 Right;
+	FLOAT3 Near;
+	FLOAT3 Far;
+
+	__device__ __host__ Frustum(const FLOAT3& bottom, const FLOAT3& top,
+		const FLOAT3& left, const FLOAT3& right,
+		const FLOAT3& n, const FLOAT3& f)
+		: Bottom(bottom), Top(top), Left(left), Right(right), Near(n), Far(f)
+	{
+
+	}
+
+	__device__ __host__ Frustum(const Frustum& right)
+		: Bottom(right.Bottom), Top(right.Top), Left(right.Left), Right(right.Right), Near(right.Near), Far(right.Far)
+	{
+
+	}
+};
+
+int AABBFrustum()
