@@ -1,7 +1,8 @@
 #pragma once
 
 #include<immintrin.h>
-
+#include<device_functions.h>
+#include<device_launch_parameters.h>
 using namespace std;
 
 struct INT2
@@ -637,17 +638,18 @@ __device__ __host__ inline void Clamp(_Ty& t, _Ty min, _Ty max)
 
 struct AABB
 {
-	FLOAT3 Min;
-	FLOAT3 Max;
+	FLOAT3 Center;
+	FLOAT3 Extend;
 
 	__device__ __host__ AABB(const FLOAT3& min, const FLOAT3& max)
-		: Min(min), Max(max)
+		: Center(FLOAT3(min.x + (max.x * 0.5f), min.y + (max.y * 0.5f), min.z + (max.z * 0.5f))),
+		Extend(FLOAT3(max.x - Center.x, max.y - Center.y, max.z - Center.z))
 	{
 
 	}
 
 	__device__ __host__ AABB(const AABB& right)
-		: Min(right.Min), Max(right.Max)
+		: Center(right.Center), Extend(right.Extend)
 	{
 
 	}
@@ -658,18 +660,40 @@ struct AABB
 	}
 };
 
+
+//__device__ __host__ inline AABB GetAABB(const FLOAT4X4& m)
+//{
+//	float determ = Float4x4Determinant(m);
+//	FLOAT4X4 inv = Float4x4Multiply(m, 1.0f / determ);
+//
+//	FLOAT3 center;
+//
+//
+//	
+//}
+
+
+
+// Frustum
+
 struct Frustum
 {
-	FLOAT3 Bottom;
-	FLOAT3 Top;
-	FLOAT3 Left;
-	FLOAT3 Right;
-	FLOAT3 Near;
-	FLOAT3 Far;
+	
+	FLOAT4 Bottom;
+	FLOAT4 Top;
+	FLOAT4 Left;
+	FLOAT4 Right;
+	FLOAT4 Near;
+	FLOAT4 Far;
 
-	__device__ __host__ Frustum(const FLOAT3& bottom, const FLOAT3& top,
-		const FLOAT3& left, const FLOAT3& right,
-		const FLOAT3& n, const FLOAT3& f)
+	__device__ __host__ Frustum()
+	{
+
+	}
+
+	__device__ __host__ Frustum(const FLOAT4& bottom, const FLOAT4& top,
+		const FLOAT4& left, const FLOAT4& right,
+		const FLOAT4& n, const FLOAT4& f)
 		: Bottom(bottom), Top(top), Left(left), Right(right), Near(n), Far(f)
 	{
 
@@ -682,4 +706,94 @@ struct Frustum
 	}
 };
 
-int AABBFrustum()
+inline __device__ __host__ Frustum GetFrustum(const FLOAT4X4& m)
+{
+	Frustum frs;
+
+	frs.Left = FLOAT4(m._41 + m._11, m._42 + m._12, m._43 + m._13, m._44 + m._14);
+	frs.Right = FLOAT4(m._41 - m._11, m._42 - m._12, m._43 - m._13, m._44 - m._14);
+	frs.Bottom = FLOAT4(m._41 + m._21, m._42 + m._22, m._43 + m._23, m._44 + m._24);
+	frs.Top = FLOAT4(m._41 - m._21, m._42 - m._22, m._43 - m._23, m._44 - m._24);
+	frs.Near = FLOAT4(m._41 + m._31, m._42 + m._32, m._43 + m._33, m._44 + m._34);
+	frs.Far = FLOAT4(m._41 - m._31, m._42 - m._32, m._43 - m._33, m._44 - m._34);
+
+	return frs;
+}
+
+inline __device__ __host__ int AABBFrustum(const AABB& aabb, const Frustum& frs)
+{
+	float m, n;
+	int result = 1;
+
+	m = (aabb.Center.x * frs.Bottom.x) + (aabb.Center.y * frs.Bottom.y) + (aabb.Center.z * frs.Bottom.z) + frs.Bottom.w;
+	n = (aabb.Extend.x * fabs(frs.Bottom.x)) + (aabb.Extend.y * fabs(frs.Bottom.y)) + (aabb.Extend.z * fabs(frs.Bottom.z));
+
+	if (m > -frs.Bottom.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Bottom.w)
+	{
+		result = 0;
+	}
+
+	m = (aabb.Center.x * frs.Top.x) + (aabb.Center.y * frs.Top.y) + (aabb.Center.z * frs.Top.z) + frs.Top.w;
+	n = (aabb.Extend.x * fabs(frs.Top.x)) + (aabb.Extend.y * fabs(frs.Top.y)) + (aabb.Extend.z * fabs(frs.Top.z));
+	if (m > -frs.Top.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Top.w)
+	{
+		result = 0;
+	}
+
+	m = (aabb.Center.x * frs.Left.x) + (aabb.Center.y * frs.Left.y) + (aabb.Center.z * frs.Left.z) + frs.Left.w;
+	n = (aabb.Extend.x * fabs(frs.Left.x)) + (aabb.Extend.y * fabs(frs.Left.y)) + (aabb.Extend.z * fabs(frs.Left.z));
+	if (m > -frs.Left.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Left.w)
+	{
+		result = 0;
+	}
+
+	m = (aabb.Center.x * frs.Right.x) + (aabb.Center.y * frs.Right.y) + (aabb.Center.z * frs.Right.z) + frs.Right.w;
+	n = (aabb.Extend.x * fabs(frs.Right.x)) + (aabb.Extend.y * fabs(frs.Right.y)) + (aabb.Extend.z * fabs(frs.Right.z));
+	if (m > -frs.Right.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Right.w)
+	{
+		result = 0;
+	}
+
+
+	m = (aabb.Center.x * frs.Near.x) + (aabb.Center.y * frs.Near.y) + (aabb.Center.z * frs.Near.z) + frs.Near.w;
+	n = (aabb.Extend.x * fabs(frs.Near.x)) + (aabb.Extend.y * fabs(frs.Near.y)) + (aabb.Extend.z * fabs(frs.Near.z));
+	if (m > -frs.Near.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Near.w)
+	{
+		result = 0;
+	}
+
+
+	m = (aabb.Center.x * frs.Far.x) + (aabb.Center.y * frs.Far.y) + (aabb.Center.z * frs.Far.z) + frs.Far.w;
+	n = (aabb.Extend.x * fabs(frs.Far.x)) + (aabb.Extend.y * fabs(frs.Far.y)) + (aabb.Extend.z * fabs(frs.Far.z));
+	if (m > -frs.Far.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Far.w)
+	{
+		result = 0;
+	}
+
+
+	return result;
+}
