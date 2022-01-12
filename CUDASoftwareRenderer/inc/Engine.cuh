@@ -40,6 +40,9 @@ private:
 	std::shared_ptr<DeviceBuffer> mTriangleBuffer0;
 	std::shared_ptr<DeviceBuffer> mTriangleBuffer1;
 
+	AABB mAABB0;
+
+
 	unsigned int mVertexCount0;
 	unsigned int mIndexCount0;
 

@@ -42,11 +42,31 @@ void Engine::Start()
 	std::vector<SampleVertex> vertices0;
 	std::vector<SampleVertex> vertices1;
 
+	FLOAT3 maxPosition0 = FLOAT3(FLT_MIN, FLT_MIN, FLT_MIN);
+	FLOAT3 minPosition0 = FLOAT3(FLT_MAX, FLT_MAX, FLT_MAX);
+
 	for (unsigned int i = 0; i < mVertexCount0; i++)
 	{
 		Vertex conv = sampleLoader0.Vertices[i];
+		
+		float dist = conv.mPosition.x + conv.mPosition.y + conv.mPosition.z;
+		float compMax = maxPosition0.x + maxPosition0.y + maxPosition0.z;
+		float compMin = minPosition0.x + minPosition0.y + minPosition0.z;
+
+		if (dist > compMax)
+		{
+			maxPosition0 = FLOAT3(conv.mPosition.x, conv.mPosition.y, conv.mPosition.z);
+		}
+
+		if (dist < compMin)
+		{
+			minPosition0 = FLOAT3(conv.mPosition.x, conv.mPosition.y, conv.mPosition.z);
+		}
+
 		vertices0.push_back(ConvertVertex(conv));
 	}
+
+	mAABB0 = AABB(minPosition0, maxPosition0);
 
 	for (unsigned int i = 0; i < mVertexCount1; i++)
 	{
@@ -78,16 +98,29 @@ void Engine::Update(float delta, float time)
 	static FLOAT4X4 transform1 = Float4x4Multiply(Float4x4Multiply(Float4x4Translate(FLOAT3(-3, 0, 0) ), Float4x4RotationX(-90.0f)), Float4x4Scale(FLOAT3(10, 10, 10)));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
-	
+
 	view._42 = -1.0f;
-	view._43 = 50.0f + (sin(time) * 20.0f);
+	view._43 = 50.0f;// +(sin(time) * 20.0f);
+	view._41 = (sin(time) * 80.0f);
 
 
 	//transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
 	transform0 = Float4x4Multiply(transform0, Float4x4RotationY(delta));
 	//transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
+	Frustum viewFrustum = GetFrustum(Float4x4Multiply(Float4x4Multiply(transform0, view), projection));
 
-	mRenderer->DrawTriangles(mVertexBuffer0, mIndexBuffer0, mFragmentBuffer0, mTriangleBuffer0, mVertexCount0, mIndexCount0, transform0, view, projection);
+	int cullResult = AABBFrustum(mAABB0, viewFrustum);
+
+	if (cullResult >= 0)
+	{
+		mRenderer->DrawTriangles(mVertexBuffer0, mIndexBuffer0, mFragmentBuffer0, mTriangleBuffer0, mVertexCount0, mIndexCount0, transform0, view, projection);
+		printf("Not Culled\n");
+	}
+	else
+	{
+		printf("Culled\n");
+	}
+
 	//mRenderer->DrawTriangles(mVertexBuffer1, mIndexBuffer1, mFragmentBuffer1, mTriangleBuffer1, mVertexCount1, mIndexCount1, transform1, view, projection);
 	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
 
