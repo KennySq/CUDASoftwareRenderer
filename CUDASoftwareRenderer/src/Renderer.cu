@@ -124,9 +124,6 @@ void Renderer::Release()
 	cudaFree(deviceDrawPoints);
 	delete[] mRenderPoints;
 	mRenderPoints = nullptr;
-
-	cudaStreamDestroy(mVertexStream);
-	cudaStreamDestroy(mFragmentStream);
 }
 
 void Renderer::ClearCanvas(const ColorRGBA& clearColor)
@@ -486,7 +483,7 @@ __global__ void KernelRasterize(DWORD* buffer, DWORD* depth,
 	DeviceDrawFilledTriangle(buffer, depth, triangle, width, height, scanlineIndex);
 }
 
-__device__ AABB DeviceGetAABB(const INT2& c0, const INT2& c1, const INT2& c2)
+__device__ AABB2D DeviceGetAABB(const INT2& c0, const INT2& c1, const INT2& c2)
 {
 	int maxX, maxY;
 	int minX, minY;
@@ -503,7 +500,7 @@ __device__ AABB DeviceGetAABB(const INT2& c0, const INT2& c1, const INT2& c2)
 	minY = min(c0.y, c1.y);
 	minY = min(minY, c2.y);
 
-	return AABB(INT2(minX, minY), INT2(maxX, maxY));
+	return AABB2D(INT2(minX, minY), INT2(maxX, maxY));
 }
 
 __device__ FLOAT3 DeviceGetBarycentric(const FLOAT4& p0, const FLOAT4& p1, const FLOAT4& p2)
@@ -593,7 +590,7 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	INT2 point1 = NDCToClipSpace(ndcPosition1, width, height);
 	INT2 point2 = NDCToClipSpace(ndcPosition2, width, height);
 
-	AABB aabb = DeviceGetAABB(point0, point1, point2);
+	AABB2D aabb = DeviceGetAABB(point0, point1, point2);
 	FLOAT3 barycentric = DeviceGetBarycentric(o0.Position, o1.Position, o2.Position);
 	FLOAT3 surfaceNormal = DeviceGetSurfaceNormal(v0.Position, v1.Position, v2.Position);
 	FLOAT4 wolrdSurfaceNormal = Float4Multiply(FLOAT4(surfaceNormal.x, surfaceNormal.y, surfaceNormal.z, 1.0f), Transform);

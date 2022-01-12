@@ -40,7 +40,7 @@ public:
 
 		}
 
-		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB& aabb, const FLOAT3& barycentric, const FLOAT3& surfaceNormal)
+		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB2D& aabb, const FLOAT3& barycentric, const FLOAT3& surfaceNormal)
 			: Bound(aabb), Barycentric(barycentric), SurfaceNormal(surfaceNormal)
 		{
 			FragmentInput[0] = vo0;
@@ -57,7 +57,7 @@ public:
 		}
 
 		VertexOutput FragmentInput[3];
-		AABB Bound;
+		AABB2D Bound;
 		FLOAT3 Barycentric;
 		FLOAT3 SurfaceNormal;
 	};
