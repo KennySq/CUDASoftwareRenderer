@@ -29,14 +29,22 @@ private:
 
 	std::shared_ptr<DeviceTexture> mTexture;
 
-	std::shared_ptr<DeviceBuffer> mVertexBuffer;
-	std::shared_ptr<DeviceBuffer> mIndexBuffer;
+	std::shared_ptr<DeviceBuffer> mVertexBuffer0;
+	std::shared_ptr<DeviceBuffer> mIndexBuffer0;
 
-	std::shared_ptr<DeviceBuffer> mFragmentBuffer;
-	std::shared_ptr<DeviceBuffer> mTriangleBuffer;
+	std::shared_ptr<DeviceBuffer> mVertexBuffer1;
+	std::shared_ptr<DeviceBuffer> mIndexBuffer1;
 
-	unsigned int mVertexCount;
-	unsigned int mIndexCount;
+	std::shared_ptr<DeviceBuffer> mFragmentBuffer0;
+	std::shared_ptr<DeviceBuffer> mFragmentBuffer1;
+	std::shared_ptr<DeviceBuffer> mTriangleBuffer0;
+	std::shared_ptr<DeviceBuffer> mTriangleBuffer1;
+
+	unsigned int mVertexCount0;
+	unsigned int mIndexCount0;
+
+	unsigned int mVertexCount1;
+	unsigned int mIndexCount1;
 
 	HWND mHandle;
 };

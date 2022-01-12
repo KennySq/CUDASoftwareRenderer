@@ -19,30 +19,53 @@ void Engine::Start()
 	char buffer[256];
 	GetModuleFileNameA(nullptr, buffer, 256);
 	std::string workingPath = buffer;
-
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
 
-	workingPath += "\\CUDASoftwareRenderer\\assets\\steve.fbx";
+	std::string resourcePath0 = workingPath;
+	std::string resourcePath1 = workingPath;
 
-	FbxLoader sampleLoader(workingPath.c_str());
+	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\steve.fbx";
+	resourcePath1 += "\\CUDASoftwareRenderer\\assets\\sphere.fbx";
 
-	mVertexCount = sampleLoader.Vertices.size();
-	mIndexCount = sampleLoader.Indices.size();
+	FbxLoader sampleLoader0(resourcePath0.c_str());
+	FbxLoader sampleLoader1(resourcePath1.c_str());
 
-	std::vector<SampleVertex> vertices;
+	mVertexCount0 = sampleLoader0.Vertices.size();
+	mIndexCount0 = sampleLoader0.Indices.size();
 
-	for (unsigned int i = 0; i < mVertexCount; i++)
+	mVertexCount1 = sampleLoader1.Vertices.size();
+	mIndexCount1 = sampleLoader1.Indices.size();
+
+
+	std::vector<SampleVertex> vertices0;
+	std::vector<SampleVertex> vertices1;
+
+	for (unsigned int i = 0; i < mVertexCount0; i++)
 	{
-		Vertex conv = sampleLoader.Vertices[i];
-		vertices.push_back(ConvertVertex(conv));
+		Vertex conv = sampleLoader0.Vertices[i];
+		vertices0.push_back(ConvertVertex(conv));
 	}
 
-	mVertexBuffer = mResources->CreateBuffer(sizeof(SampleVertex), mVertexCount, vertices.data());
-	mIndexBuffer = mResources->CreateBuffer(sizeof(unsigned int), mIndexCount, sampleLoader.Indices.data());
-	mFragmentBuffer = mResources->CreateBuffer(sizeof(VertexOutput), mVertexCount);
-	mTriangleBuffer = mResources->CreateBuffer(sizeof(Renderer::Triangle), mIndexCount / 3);
+	for (unsigned int i = 0; i < mVertexCount1; i++)
+	{
+		Vertex conv = sampleLoader1.Vertices[i];
+		vertices1.push_back(ConvertVertex(conv));
+	}
+
+	mVertexBuffer0 = mResources->CreateBuffer(sizeof(SampleVertex), mVertexCount0, vertices0.data());
+	mIndexBuffer0 = mResources->CreateBuffer(sizeof(unsigned int), mIndexCount0, sampleLoader0.Indices.data());
+	
+	mVertexBuffer1 = mResources->CreateBuffer(sizeof(SampleVertex), mVertexCount1, vertices1.data());
+	mIndexBuffer1 = mResources->CreateBuffer(sizeof(unsigned int), mIndexCount1, sampleLoader1.Indices.data());
+
+	
+	mFragmentBuffer0 = mResources->CreateBuffer(sizeof(VertexOutput), mVertexCount0);
+	mFragmentBuffer1 = mResources->CreateBuffer(sizeof(VertexOutput), mVertexCount1);
+
+	mTriangleBuffer0 = mResources->CreateBuffer(sizeof(Renderer::Triangle), mIndexCount0 / 3);
+	mTriangleBuffer1 = mResources->CreateBuffer(sizeof(Renderer::Triangle), mIndexCount1 / 3);
 
 	DWORD packedDepth = PackDepth(0.998f);
 }
@@ -51,18 +74,21 @@ void Engine::Update(float delta, float time)
 {
 	mRenderer->ClearCanvas(ColorRGBA(0.0f, 0.0f, 0.0f, 0.0f));
 	mRenderer->ClearDepth();
-	static FLOAT4X4 transform = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
+	static FLOAT4X4 transform0 = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
+	static FLOAT4X4 transform1 = Float4x4Multiply(Float4x4Multiply(Float4x4Translate(FLOAT3(-3, 0, 0) ), Float4x4RotationX(-90.0f)), Float4x4Scale(FLOAT3(10, 10, 10)));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 	
 	view._42 = -1.0f;
 	view._43 = 50.0f + (sin(time) * 20.0f);
 
+
 	//transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
-	transform = Float4x4Multiply(transform, Float4x4RotationY(delta));
+	transform0 = Float4x4Multiply(transform0, Float4x4RotationY(delta));
 	//transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
 
-	mRenderer->DrawTriangles(mVertexBuffer, mIndexBuffer, mFragmentBuffer, mTriangleBuffer, mVertexCount, mIndexCount, transform, view, projection);
+	mRenderer->DrawTriangles(mVertexBuffer0, mIndexBuffer0, mFragmentBuffer0, mTriangleBuffer0, mVertexCount0, mIndexCount0, transform0, view, projection);
+	//mRenderer->DrawTriangles(mVertexBuffer1, mIndexBuffer1, mFragmentBuffer1, mTriangleBuffer1, mVertexCount1, mIndexCount1, transform1, view, projection);
 	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
 
 	
