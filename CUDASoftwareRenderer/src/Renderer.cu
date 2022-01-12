@@ -682,7 +682,7 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
 
 	FLOAT4X4 mvp = Float4x4Multiply(transform, view);
 	mvp = Float4x4Multiply(mvp, projection);
-
+	
 	KernelTransformVertices << <transformGrid, transformBlock >> >
 		(CAST_PIXEL(buffer), CAST_PIXEL(depth),
 			triangles, width, height,

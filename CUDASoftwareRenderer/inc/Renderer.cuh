@@ -98,6 +98,7 @@ private:
 
 	Point2D* mRenderPoints;
 
+
 	unsigned int mPointCount;
 
 	unsigned int mTriangleCount;
