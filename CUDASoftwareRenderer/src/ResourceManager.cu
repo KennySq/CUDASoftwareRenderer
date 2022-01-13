@@ -23,15 +23,15 @@ __global__ void KernelCopyFromFileTexture(DWORD* dst, DWORD* src, unsigned int w
 
 	unsigned int index = PointToIndex(INT2(x, y), width);
 
-	BYTE sb0 = src[index] & 0xFF000000;
-	BYTE sb1 = src[index] & 0x00FF0000;
-	BYTE sb2 = src[index] & 0x0000FF00;
-	BYTE sb3 = src[index] & 0x000000FF;
+	BYTE sb0 = (src[threadId] & 0xFF000000) >> 24;
+	BYTE sb1 = (src[threadId] & 0x00FF0000) >> 16;
+	BYTE sb2 = (src[threadId] & 0x0000FF00) >> 8;
+	BYTE sb3 = (src[threadId] & 0x000000FF) >> 0;
 
-	dst[index] |= sb3 << 0;
-	dst[index] |= sb0 << 8;
-	dst[index] |= sb1 << 16;
-	dst[index] |= sb2 << 24;
+	dst[threadId] |= (sb0 << 24);
+	dst[threadId] |= (sb1 << 0);
+	dst[threadId] |= (sb2 << 8);
+	dst[threadId] |= (sb3 << 16);
 
 }
 
