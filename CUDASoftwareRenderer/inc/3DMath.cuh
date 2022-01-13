@@ -658,6 +658,16 @@ struct AABB
 	{
 
 	}
+
+	__device__ __host__ FLOAT3 Min() const
+	{
+		return Center - Extend;
+	}
+
+	__device__ __host__ FLOAT3 Max() const
+	{
+		return Center + Extend;
+	}
 };
 
 
@@ -725,75 +735,71 @@ inline __device__ __host__ int AABBFrustum(const AABB& aabb, const Frustum& frs)
 	float m, n;
 	int result = 1;
 
-	m = (aabb.Center.x * frs.Bottom.x) + (aabb.Center.y * frs.Bottom.y) + (aabb.Center.z * frs.Bottom.z) + frs.Bottom.w;
-	n = (aabb.Extend.x * fabs(frs.Bottom.x)) + (aabb.Extend.y * fabs(frs.Bottom.y)) + (aabb.Extend.z * fabs(frs.Bottom.z));
-
+	m = (aabb.Min().x * frs.Bottom.x) + (aabb.Min().y * frs.Bottom.y) + (aabb.Min().z * frs.Bottom.z) + frs.Bottom.w;
+	n = (aabb.Max().x * fabs(frs.Bottom.x)) + (aabb.Max().y * fabs(frs.Bottom.y)) + (aabb.Max().z * fabs(frs.Bottom.z));
+	
 	if (m > -frs.Bottom.w)
 	{
 		return -1;
 	}
 	if (n > -frs.Bottom.w)
 	{
-		result = 0;
+		return 0;
 	}
 
-	m = (aabb.Center.x * frs.Top.x) + (aabb.Center.y * frs.Top.y) + (aabb.Center.z * frs.Top.z) + frs.Top.w;
-	n = (aabb.Extend.x * fabs(frs.Top.x)) + (aabb.Extend.y * fabs(frs.Top.y)) + (aabb.Extend.z * fabs(frs.Top.z));
+	m = (aabb.Min().x * frs.Top.x) + (aabb.Min().y * frs.Top.y) + (aabb.Min().z * frs.Top.z) + frs.Top.w;
+	n = (aabb.Max().x * fabs(frs.Top.x)) + (aabb.Max().y * fabs(frs.Top.y)) + (aabb.Max().z * fabs(frs.Top.z));
 	if (m > -frs.Top.w)
 	{
 		return -1;
 	}
 	if (n > -frs.Top.w)
 	{
-		result = 0;
+		return 0;
 	}
 
-	m = (aabb.Center.x * frs.Left.x) + (aabb.Center.y * frs.Left.y) + (aabb.Center.z * frs.Left.z) + frs.Left.w;
-	n = (aabb.Extend.x * fabs(frs.Left.x)) + (aabb.Extend.y * fabs(frs.Left.y)) + (aabb.Extend.z * fabs(frs.Left.z));
+	m = (aabb.Min().x * frs.Left.x) + (aabb.Min().y * frs.Left.y) + (aabb.Min().z * frs.Left.z) + frs.Left.w;
+	n = (aabb.Max().x * fabs(frs.Left.x)) + (aabb.Max().y * fabs(frs.Left.y)) + (aabb.Max().z * fabs(frs.Left.z));
 	if (m > -frs.Left.w)
 	{
 		return -1;
 	}
 	if (n > -frs.Left.w)
 	{
-		result = 0;
+		return 0;
 	}
-
-	m = (aabb.Center.x * frs.Right.x) + (aabb.Center.y * frs.Right.y) + (aabb.Center.z * frs.Right.z) + frs.Right.w;
-	n = (aabb.Extend.x * fabs(frs.Right.x)) + (aabb.Extend.y * fabs(frs.Right.y)) + (aabb.Extend.z * fabs(frs.Right.z));
+	m = (aabb.Min().x * frs.Right.x) + (aabb.Min().y * frs.Right.y) + (aabb.Min().z * frs.Right.z) + frs.Right.w;
+	n = (aabb.Max().x * fabs(frs.Right.x)) + (aabb.Max().y * fabs(frs.Right.y)) + (aabb.Max().z * fabs(frs.Right.z));
 	if (m > -frs.Right.w)
 	{
 		return -1;
 	}
 	if (n > -frs.Right.w)
 	{
-		result = 0;
+		return 0;
 	}
 
 
-	m = (aabb.Center.x * frs.Near.x) + (aabb.Center.y * frs.Near.y) + (aabb.Center.z * frs.Near.z) + frs.Near.w;
-	n = (aabb.Extend.x * fabs(frs.Near.x)) + (aabb.Extend.y * fabs(frs.Near.y)) + (aabb.Extend.z * fabs(frs.Near.z));
+	m = (aabb.Min().x * frs.Near.x) + (aabb.Min().y * frs.Near.y) + (aabb.Min().z * frs.Near.z) + frs.Near.w;
+	n = (aabb.Max().x * fabs(frs.Near.x)) + (aabb.Max().y * fabs(frs.Near.y)) + (aabb.Max().z * fabs(frs.Near.z));
 	if (m > -frs.Near.w)
 	{
 		return -1;
 	}
 	if (n > -frs.Near.w)
 	{
-		result = 0;
+		return 0;
 	}
 
-
-	m = (aabb.Center.x * frs.Far.x) + (aabb.Center.y * frs.Far.y) + (aabb.Center.z * frs.Far.z) + frs.Far.w;
-	n = (aabb.Extend.x * fabs(frs.Far.x)) + (aabb.Extend.y * fabs(frs.Far.y)) + (aabb.Extend.z * fabs(frs.Far.z));
+	m = (aabb.Min().x * frs.Far.x) + (aabb.Min().y * frs.Far.y) + (aabb.Min().z * frs.Far.z) + frs.Far.w;
+	n = (aabb.Max().x * fabs(frs.Far.x)) + (aabb.Max().y * fabs(frs.Far.y)) + (aabb.Max().z * fabs(frs.Far.z));
 	if (m > -frs.Far.w)
 	{
 		return -1;
 	}
 	if (n > -frs.Far.w)
 	{
-		result = 0;
+		return 0;
 	}
-
-
 	return result;
 }
