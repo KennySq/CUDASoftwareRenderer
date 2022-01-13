@@ -74,7 +74,8 @@ public:
 	void ClearDepth();
 	void SetPixel(int x, int y, const ColorRGBA& color);
 	void SetPixelNDC(float x, float y, const ColorRGBA& color);
-	void SetTriangle(const Point2D& p0, const Point2D& p1, const Point2D& p2);
+
+	void DrawTexture(std::shared_ptr<DeviceTexture> texture, int x, int y);
 
 	void OutText(int x, int y, std::string str);
 

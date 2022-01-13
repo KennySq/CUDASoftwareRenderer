@@ -89,6 +89,29 @@ void Renderer::SetPixelNDC(float x, float y, const ColorRGBA& color)
 	mPointCount++;
 }
 
+__global__ void KernelDrawTexture(DWORD* texture, DWORD* buffer, int x, int y, unsigned int width)
+{
+	int blockId = blockIdx.x + blockIdx.y * gridDim.x
+		+ gridDim.x * gridDim.y * blockIdx.z;
+	int threadId = blockId * (blockDim.x * blockDim.y)
+		+ (threadIdx.y * blockDim.x) + threadIdx.x;
+
+	unsigned int index = PointToIndex(INT2(x + threadId % width, y + threadId / width), 1280);
+
+	buffer[index] = texture[threadId];
+}
+
+void Renderer::DrawTexture(std::shared_ptr<DeviceTexture> texture, int x, int y)
+{
+	void* ptr = texture->GetVirtual();
+
+	dim3 block = dim3(32, 32, 1);
+	dim3 grid = dim3(64 / 32, 64 / 32, 1);
+	KernelDrawTexture<<<grid, block>>>(CAST_PIXEL(ptr), CAST_PIXEL(mBuffer->GetVirtual()), x, y, 64);
+
+	return;
+}
+
 void Renderer::OutText(int x, int y, std::string str)
 {
 	RECT rect{};
@@ -211,30 +234,35 @@ __device__ void DeviceGetBarycentricAreas(const INT2& p4, const INT2& p0, const 
 	u = 1.0f - v - w;
 }
 
-__device__ float DeviceInterpolateDepth(unsigned int width, unsigned int height,
-	const Renderer::Triangle& triangle, const INT2& point)
+__device__ float DeviceInterpolateDepth(const Renderer::Triangle& triangle, 
+	const INT2& point, const INT2& v0, const INT2& v1, const INT2& v2)
 {
 	FLOAT4 projected0 = triangle.FragmentInput[0].Position;
 	FLOAT4 projected1 = triangle.FragmentInput[1].Position;
 	FLOAT4 projected2 = triangle.FragmentInput[2].Position;
 
-	FLOAT3 ndc0 = HomogeneousToNDC(projected0);
-	FLOAT3 ndc1 = HomogeneousToNDC(projected1);
-	FLOAT3 ndc2 = HomogeneousToNDC(projected2);
-
-	INT2 clip0 = NDCToClipSpace(ndc0, width, height);
-	INT2 clip1 = NDCToClipSpace(ndc1, width, height);
-	INT2 clip2 = NDCToClipSpace(ndc2, width, height);
-
 	float u, v, w;
 
-	DeviceGetBarycentricAreas(point, clip0, clip1, clip2, u, v, w);
+	DeviceGetBarycentricAreas(point, v0, v1, v2, u, v, w);
 
-	FLOAT3 barycentric = FLOAT3(u, v, w);
-
-	float z = -(barycentric.x * projected0.z + barycentric.y * projected1.z + barycentric.z * projected2.z);
+	float z = -(u * projected0.z + v * projected1.z + w * projected2.z);
 	
 	return 1.0f / z;
+}
+
+__device__ FLOAT4 DeviceInterpolateColor(const Renderer::Triangle& triangle, 
+	const INT2& point, const INT2& v0, const INT2& v1, const INT2& v2)
+{
+	float u, v, w;
+
+	DeviceGetBarycentricAreas(point, v0, v1, v2, u, v, w);
+
+	FLOAT4 color = (triangle.FragmentInput[0].Normal * u) + (triangle.FragmentInput[1].Normal * v) + (triangle.FragmentInput[2].Normal * w);
+	Clamp<float>(color.x, 0.0f, 1.0f);
+	Clamp<float>(color.y, 0.0f, 1.0f);
+	Clamp<float>(color.z, 0.0f, 1.0f);
+	Clamp<float>(color.w, 0.0f, 1.0f);
+	return color;
 }
 
 __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth, 
@@ -281,26 +309,35 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 
 	INT2 point = INT2(from.x, from.y);
 
+	FLOAT3 ndc0 = HomogeneousToNDC(triangle.FragmentInput[0].Position);
+	FLOAT3 ndc1 = HomogeneousToNDC(triangle.FragmentInput[1].Position);
+	FLOAT3 ndc2 = HomogeneousToNDC(triangle.FragmentInput[2].Position);
+
+	INT2 clip0 = NDCToClipSpace(ndc0, width, height);
+	INT2 clip1 = NDCToClipSpace(ndc1, width, height);
+	INT2 clip2 = NDCToClipSpace(ndc2, width, height);
+
 	if (dx > dy)
 	{
 		for (int i = 0; i <= d; i++)
 		{
 			unsigned int index = (point.y * width) + point.x;
 
-			float d = DeviceInterpolateDepth(width, height, triangle, point);
+			float d = DeviceInterpolateDepth(triangle, point, clip0, clip1, clip2);
+			FLOAT4 color = DeviceInterpolateColor(triangle, point, clip0, clip1, clip2);
 			int packed = PackDepth(d);
 
 			atomicMax(reinterpret_cast<int*>(&depth[index]), packed);
 			
 			if (depth[index] == packed)
 			{
-				DeviceSetPixel(buffer, index, debugColor);
+				DeviceSetPixel(buffer, index, ColorRGBA(color.x, color.y, color.z, color.w));
 			}
 
 			point.x += sx;
 			r += dy;
 
-			if (r > dx)
+			if (r >= dx)
 			{
 				point.y += sy;
 				r -= dx;
@@ -312,13 +349,15 @@ __device__  void DeviceDrawLine(DWORD* buffer, DWORD* depth,
 		for (int i = 0; i <= d; i++)
 		{
 			unsigned int index = (point.y * width) + point.x;
-			float d = DeviceInterpolateDepth(width, height, triangle, point);
+			float d = DeviceInterpolateDepth(triangle, point, clip0, clip1, clip2);
+			FLOAT4 color = DeviceInterpolateColor(triangle, point, clip0, clip1, clip2);
+
 			int packed = PackDepth(d);
 
 			atomicMax(reinterpret_cast<int*>(&depth[index]), packed);
 			if (depth[index] == packed)
 			{
-				DeviceSetPixel(buffer, index, debugColor);
+				DeviceSetPixel(buffer, index, ColorRGBA(color.x, color.y, color.z, color.w));
 			}
 			point.y += sy;
 			r += dx;
@@ -383,7 +422,6 @@ __device__ void DeviceFillTopFlatTriangle(DWORD* buffer, DWORD* depth,
 	DeviceDrawLine(buffer, depth, begin, end, triangle, width, height, debugColor);
 }
 
-
 __device__ void DeviceDrawFilledTriangle(DWORD* buffer, DWORD* depth, const Renderer::Triangle& triangle,
 	unsigned int width, unsigned int height, unsigned int threadId)
 {
@@ -425,6 +463,7 @@ __device__ void DeviceDrawFilledTriangle(DWORD* buffer, DWORD* depth, const Rend
 
 	if (cp2.y == cp1.y)
 	{
+
 		DeviceFillBottomFlatTriangle(buffer, depth, cp0, cp1, cp2, triangle, width, height, threadId, ColorRGBA(1, 1, 1, 1));
 	}
 
@@ -662,7 +701,7 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
 	dim3 transformBlock = dim3(512, 1, 1);
 	dim3 transformGrid = dim3(((totalThread + transformBlock.x - 1) / transformBlock.x), 1, 1);
 
-	dim3 rasterBlock = dim3(28, 28, 1);
+	dim3 rasterBlock = dim3(24, 24, 1);
 	dim3 rasterGrid = dim3((width + rasterBlock.x - 1) / rasterBlock.x, (height + rasterBlock.y - 1) / rasterBlock.y, 1);
 
 	if (transformGrid.x == 0)
