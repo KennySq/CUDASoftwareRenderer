@@ -19,6 +19,9 @@
     <Filter Include="CUDA 헤더 파일">
       <UniqueIdentifier>{95b696ab-3479-4603-92e4-6121cda72d0f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Lodepng">
+      <UniqueIdentifier>{8baa351a-5d66-4129-af8e-4ed610556277}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\pch.cpp">
@@ -29,6 +32,9 @@
     </ClCompile>
     <ClCompile Include="src\Util.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Lodepng\src\lodepng.cpp">
+      <Filter>Lodepng</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +137,8 @@
     <CudaCompile Include="src\3DMath.cu">
       <Filter>CUDA 소스 파일</Filter>
     </CudaCompile>
-    <CudaCompile Include="src\Geometry.cu" />
+    <CudaCompile Include="src\Geometry.cu">
+      <Filter>CUDA 소스 파일</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

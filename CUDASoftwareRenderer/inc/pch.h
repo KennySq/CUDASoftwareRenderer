@@ -13,11 +13,11 @@
 #include<Windows.h>
 #include<windowsx.h>
 #include<iostream>
+#include<fstream>
 #include<assert.h>
 #include<memory>
 #include<vector>
 #include<string>
-#include<functional>
 #include<stdarg.h>
 #include<math.h>
 #include<cmath>
@@ -28,6 +28,7 @@
 #include<cuda_runtime_api.h>
 
 #include<FbxLoader.h>
+#include<lodepng.h>
 
 #pragma comment(lib, "FbxLoader.lib")
 
