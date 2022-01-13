@@ -36,7 +36,7 @@ void Engine::Start()
 	std::string resourcePath0 = workingPath;
 	std::string resourcePath1 = workingPath;
 
-	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\shiba.fbx";
+	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\steve.fbx";
 	resourcePath1 += "\\CUDASoftwareRenderer\\assets\\sphere.fbx";
 
 	FbxLoader sampleLoader0(resourcePath0.c_str());
@@ -102,7 +102,7 @@ void Engine::Start()
 
 void Engine::Update(float delta, float time)
 {
-	mRenderer->ClearCanvas(ColorRGBA(0.0f, 1.0f,0.0f, 1.0f));
+	mRenderer->ClearCanvas(ColorRGBA(1.0f, 1.0f,1.0f, 1.0f));
 	mRenderer->ClearDepth();
 	static FLOAT4X4 transform0 = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
 	static FLOAT4X4 transform1 = Float4x4Multiply(Float4x4Multiply(Float4x4Translate(FLOAT3(-3, 0, 0) ), Float4x4RotationX(-90.0f)), Float4x4Scale(FLOAT3(10, 10, 10)));
@@ -110,7 +110,7 @@ void Engine::Update(float delta, float time)
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 
 	view._42 = 0.0f;
-	view._43 = 3.0f;// +(sin(time) * 20.0f);
+	view._43 = 60.0f + (sin(time) * 5.0f);
 //	view._41 = (sin(time) * 20.0f);
 
 
