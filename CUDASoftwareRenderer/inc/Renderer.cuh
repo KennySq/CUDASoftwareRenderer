@@ -72,21 +72,18 @@ public:
 
 	void ClearCanvas(const ColorRGBA& clearColor);
 	void ClearDepth();
-	void SetPixel(int x, int y, const ColorRGBA& color);
-	void SetPixelNDC(float x, float y, const ColorRGBA& color);
-
 	void DrawTexture(std::shared_ptr<DeviceTexture> texture, int x, int y);
 
 	void OutText(int x, int y, std::string str);
 
 	void Present();
 	
-	void DrawScreen();
 	void DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::shared_ptr<DeviceBuffer> indexBuffer,
 		std::shared_ptr<DeviceBuffer> fragmentBuffer, std::shared_ptr<DeviceBuffer> triangleBuffer, 
 		unsigned int vertexCount, unsigned int indexCount, 
 		const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection);
 
+	void BindTexture(std::shared_ptr<DeviceTexture> texture, unsigned int index);
 	
 private:
 
