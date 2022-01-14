@@ -20,7 +20,7 @@ Engine::Engine(HWND hWnd)
 	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\Kenny_Texture.png";
 
 	mTexture = mResources->CreateTextureFromFile(resourcePath0.c_str());
-
+		
 
 }
 
@@ -98,6 +98,7 @@ void Engine::Start()
 	mTriangleBuffer1 = mResources->CreateBuffer(sizeof(Renderer::Triangle), mIndexCount1 / 3);
 
 	DWORD packedDepth = PackDepth(0.998f);
+
 }
 
 void Engine::Update(float delta, float time)
@@ -118,6 +119,8 @@ void Engine::Update(float delta, float time)
 	transform0 = Float4x4Multiply(transform0, Float4x4RotationY(delta));
 	//transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
 	
+	mRenderer->BindTexture(mTexture, 0);
+
 	mRenderer->DrawTriangles(mVertexBuffer0, mIndexBuffer0,
 		mFragmentBuffer0, mTriangleBuffer0, 
 		mVertexCount0, mIndexCount0, 
