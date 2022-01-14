@@ -6,6 +6,6 @@ Basic requirements
  - Windows 10
  - DirectXMath (just for the FbxLoader)
 
-![Example](https://imgur.com/a/4SaPPfF)
+[Example](https://i.imgur.com/at39HYh.png)
 
 I don't really know much about 'readme' stuff just feel casual to look around. :)
