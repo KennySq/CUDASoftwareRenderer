@@ -184,8 +184,9 @@ __device__ void DeviceGetBarycentricAreas(const INT2& p4, const INT2& p0, const 
 	INT2 ps1 = p2 - p0;
 	INT2 ps2 = p4 - p0;
 
-	FLOAT2 v0 = FLOAT2(ps0.x, ps0.y), v1 = FLOAT2(ps1.x, ps1.y), v2 = FLOAT2(ps2.x, ps2.y);
-	//FLOAT2 v0 = FLOAT2(p0.x, p0.y), v1 = FLOAT2(p1.x, p1.y), v2 = FLOAT2(p2.x, p2.y);
+	FLOAT2 v0 = FLOAT2(ps0.x, ps0.y);
+	FLOAT2 v1 = FLOAT2(ps1.x, ps1.y);
+	FLOAT2 v2 = FLOAT2(ps2.x, ps2.y);
 
 	float d00 = Float2Dot(v0, v0);
 	float d01 = Float2Dot(v0, v1);
@@ -200,20 +201,22 @@ __device__ void DeviceGetBarycentricAreas(const INT2& p4, const INT2& p0, const 
 	u = 1.0f - v - w;
 }
 
-__device__ float DeviceInterpolateDepth(const Renderer::Triangle& triangle,
-	const INT2& point, const INT2& v0, const INT2& v1, const INT2& v2)
+__device__ float DeviceInterpolateDepth(const Renderer::Triangle& triangle, float u, float v, float w)
 {
+	const float fn0 = (100.0f + 0.01f) / (2.0f * (100.0f - 0.01f));
+	const float fn1 = (-100.0f * 0.01f) / (100.0f - 0.01f);
+
 	FLOAT4 projected0 = triangle.FragmentInput[0].Position;
 	FLOAT4 projected1 = triangle.FragmentInput[1].Position;
 	FLOAT4 projected2 = triangle.FragmentInput[2].Position;
 
-	float u, v, w;
-	
-	DeviceGetBarycentricAreas(point, v0, v1, v2, u, v, w);
+	FLOAT3 ndc0 = HomogeneousToNDC(projected0);
+	FLOAT3 ndc1 = HomogeneousToNDC(projected1);
+	FLOAT3 ndc2 = HomogeneousToNDC(projected2);
 
-	float z = -(u * projected0.z + v * projected1.z + w * projected2.z);
+	float z = -(u * ndc0.z + v * ndc1.z + w * ndc2.z);
 
-	return 1.0f / z;
+	return fn0 + z * fn1 * 0.5f;
 }
 
 template<typename _Ty>
@@ -244,7 +247,7 @@ __device__ FLOAT4 DeviceSampleTexture(void* texture, const FLOAT2& uv, unsigned 
 	INT2 samplePoint = INT2(uvPoint.x, uvPoint.y);
 
 	unsigned int index = PointToIndex(samplePoint, width);
-	
+
 	if (index >= width * height)
 	{
 		return;
@@ -262,7 +265,7 @@ __device__ FLOAT4 DeviceFragmentShader(ShaderRegisterManager* regManager, const 
 	ShaderRegisterManager::Register texture = regManager->Get(0, eRegisterType::REGISTER_TEXTURE);
 	FLOAT2 uv = interp.Texcoord;
 
-	FLOAT4 sampledTexture = DeviceSampleTexture(texture.Resource, uv, texture.Width, texture.Height );
+	FLOAT4 sampledTexture = DeviceSampleTexture(texture.Resource, uv, texture.Width, texture.Height);
 
 	return sampledTexture;//FLOAT4(sampledTexture, interp.Texcoord.y, 0.0f, 1.0f);
 }
@@ -324,14 +327,11 @@ __device__  void DeviceDrawLine(ShaderRegisterManager* regManager, DWORD* buffer
 	{
 		for (int i = 0; i <= d; i++)
 		{
-			
 			unsigned int index = (point.y * width) + point.x;
-
-			float evalDepth = DeviceInterpolateDepth(triangle, point, clip0, clip1, clip2);
 
 			DeviceGetBarycentricAreas(point, clip0, clip1, clip2, u, v, w);
 
-			FLOAT4 result = DeviceFragmentShader(regManager, triangle.FragmentInput, u, v, w);
+			float evalDepth = DeviceInterpolateDepth(triangle, u, v, w);
 
 			int packed = PackDepth(evalDepth);
 
@@ -339,6 +339,8 @@ __device__  void DeviceDrawLine(ShaderRegisterManager* regManager, DWORD* buffer
 
 			if (depth[index] == packed)
 			{
+				FLOAT4 result = DeviceFragmentShader(regManager, triangle.FragmentInput, u, v, w);
+
 				DeviceSetPixel(buffer, index, ColorRGBA(result.x, result.y, result.z, result.w));
 			}
 
@@ -354,21 +356,21 @@ __device__  void DeviceDrawLine(ShaderRegisterManager* regManager, DWORD* buffer
 	}
 	else
 	{
-		for (int i = 0; i < d; i++)
+		for (int i = 0; i <= d; i++)
 		{
-
 			unsigned int index = (point.y * width) + point.x;
-			float evalDepth = DeviceInterpolateDepth(triangle, point, clip0, clip1, clip2);
-		
+
 			DeviceGetBarycentricAreas(point, clip0, clip1, clip2, u, v, w);
-		
-			FLOAT4 result = DeviceFragmentShader(regManager, triangle.FragmentInput, u, v, w);
+			float evalDepth = DeviceInterpolateDepth(triangle, u, v, w);
+
 
 			int packed = PackDepth(evalDepth);
 
 			atomicMax(reinterpret_cast<int*>(&depth[index]), packed);
 			if (depth[index] == packed)
 			{
+				FLOAT4 result = DeviceFragmentShader(regManager, triangle.FragmentInput, u, v, w);
+
 				DeviceSetPixel(buffer, index, ColorRGBA(result.x, result.y, result.z, result.w));
 			}
 			point.y += sy;
@@ -393,8 +395,8 @@ __device__ void DeviceFillBottomFlatTriangle(ShaderRegisterManager* regManager, 
 	float invSlope0 = ((p1.x - p0.x) / (float)(p1.y - p0.y));
 	float invSlope1 = ((p2.x - p0.x) / (float)(p2.y - p0.y));
 
-	float curx0 = p0.x - (invSlope0 * threadId- 1);
-	float curx1 = p0.x - (invSlope1 * threadId -1);
+	float curx0 = p0.x - (invSlope0 * threadId);
+	float curx1 = p0.x - (invSlope1 * threadId);
 
 	int scanlineOffset = p0.y - p2.y;
 
@@ -419,8 +421,8 @@ __device__ void DeviceFillTopFlatTriangle(ShaderRegisterManager* regManager, DWO
 	float invSlope0 = ((p2.x - p0.x) / (float)(p2.y - p0.y));
 	float invSlope1 = ((p2.x - p1.x) / (float)(p2.y - p1.y));
 
-	float curx0 = p2.x + (invSlope0 * threadId + 1);
-	float curx1 = p2.x + (invSlope1 * threadId + 1);
+	float curx0 = p2.x + (invSlope0 * threadId);
+	float curx1 = p2.x + (invSlope1 * threadId);
 
 	int scanlineSize = p0.y - p2.y;
 
@@ -448,10 +450,6 @@ __device__ void DeviceDrawFilledTriangle(ShaderRegisterManager* regManager, DWOR
 	INT2 cp0 = NDCToClipSpace(ndc0, width, height);
 	INT2 cp1 = NDCToClipSpace(ndc1, width, height);
 	INT2 cp2 = NDCToClipSpace(ndc2, width, height);
-
-	unsigned int depthIndex0 = PointToIndex(cp0, width);
-	unsigned int depthIndex1 = PointToIndex(cp1, width);
-	unsigned int depthIndex2 = PointToIndex(cp2, width);
 
 	auto sort = [&cp0, &cp1, &cp2]()
 	{
@@ -741,6 +739,6 @@ void Renderer::BindTexture(std::shared_ptr<DeviceTexture> texture, unsigned int 
 	unsigned int height = texture->GetHeight();
 
 	KernelSetRegister << <1, 1 >> > (deviceRegisterManager, ptr, index, width, height, eRegisterType::REGISTER_TEXTURE);
-	
+
 	return;
 }
