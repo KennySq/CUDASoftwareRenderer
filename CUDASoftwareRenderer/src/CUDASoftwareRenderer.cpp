@@ -136,7 +136,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, rect.right - rect.left, rect.bottom - rect.top, 0, nullptr, nullptr, hInstance, nullptr);
-
    
    if (!hWnd)
    {
@@ -173,6 +172,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
             EndPaint(hWnd, &ps);
         }
+        break;
+    case WM_RBUTTONDOWN:
+    {
+        int x = GET_X_LPARAM(lParam);
+        int y = GET_Y_LPARAM(lParam);
+        gEngine->RButtonDown(x, y);
+    }
         break;
     case WM_DESTROY:
         PostQuitMessage(0);

@@ -1,7 +1,8 @@
 #pragma once
 
 #include<immintrin.h>
-
+#include<device_functions.h>
+#include<device_launch_parameters.h>
 using namespace std;
 
 struct INT2
@@ -25,6 +26,10 @@ struct INT2
 	{
 		return x + y < right.x + right.y;
 	}
+
+	__device__ __host__ INT2()
+	{
+	}
 	__device__ __host__ INT2(int _x, int _y)
 		: x(_x), y(_y)
 	{
@@ -44,6 +49,11 @@ struct INT2
 inline float __device__ __host__ Int2Distance(const INT2& p1, const INT2& p2)
 {
 	return sqrtf((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+}
+
+inline INT2 __device__ __host__ operator-(const INT2& p1, const INT2& p2)
+{
+	return INT2(p1.x - p2.x, p1.y - p2.y);
 }
 
 struct FLOAT2
@@ -221,6 +231,11 @@ inline __device__ __host__ FLOAT2  operator-(const FLOAT2& v1, const FLOAT2& v2)
 	return FLOAT2(v1.x - v2.x, v1.y - v2.y);
 }
 
+inline __device__ __host__ FLOAT2  operator-(const FLOAT2& v)
+{
+	return FLOAT2(-v.x, -v.y);
+}
+
 inline __device__ __host__ void  operator-=(FLOAT2& v1, const FLOAT2& v2)
 {
 	v1.x -= v2.x;
@@ -257,6 +272,11 @@ inline __device__ __host__ float Float2Distance(const FLOAT2& v1, const FLOAT2& 
 
 //---------------------------------------------------------------
 // FLOAT3
+
+inline __device__ __host__ FLOAT3 operator-(const FLOAT3& v)
+{
+	return FLOAT3(-v.x, -v.y, -v.z);
+}
 
 inline __device__ __host__ FLOAT3  operator+(const FLOAT3& v1, const FLOAT3& v2)
 {
@@ -396,6 +416,12 @@ float __device__ __host__ inline  Float3Length(const FLOAT3& v)
 	return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
+FLOAT3 __device__ __host__ inline Float3Normalize(const FLOAT3& v)
+{
+	return v / Float3Length(v);
+}
+
+
 float __device__ __host__ inline  Float4Length(const FLOAT4& v)
 {
 
@@ -414,6 +440,11 @@ float __device__ __host__ inline  Float3Dot(const FLOAT3& v1, const FLOAT3& v2)
 float __device__ __host__ inline  Float4Dot(const FLOAT4& v1, const FLOAT4& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z + v1.w * v2.w;
+}
+
+FLOAT4 __device__ __host__ inline Float4Normalize(const FLOAT4& v)
+{
+	return v / Float4Length(v);
 }
 
 FLOAT4 __device__ __host__ inline  Float4Multiply(const FLOAT4& v, const FLOAT4X4& m)
@@ -511,6 +542,11 @@ FLOAT4X4 __device__ __host__ inline  Float4x4Multiply(const FLOAT4X4& m1, const 
 	return mat;
 }
 
+FLOAT4X4 __device__ __host__ inline Float4x4Multiply(const FLOAT4X4& m, float s)
+{
+	return FLOAT4X4(m._11 * s, m._12 * s, m._13 * s, m._14 * s, m._21 * s, m._22 * s, m._23 * s, m._24 * s, m._31 * s, m._32 * s, m._33 * s, m._34 * s, m._41 * s, m._42 * s, m._43 * s, m._44 * s);
+}
+
 FLOAT4X4 __device__ __host__ inline  Float4x4ViewMatrix(float pitch, float yaw, float roll)
 {
 	FLOAT4X4 yawMat(cos(yaw), 0, sin(yaw), 0, 0, 1, 0, 0, -sin(yaw), 0, cos(yaw), 0, 0, 0, 0, 1);
@@ -531,6 +567,8 @@ FLOAT4X4 __device__ __host__ inline  Float4x4ProjectionMatrix(float n, float f, 
 		0, 0, ((n + f) / (n - f)), ((2.0f * n * f) / (n - f)),
 		0, 0, -1, 0);
 }
+
+//void __device__ __host__ inline Float4x4GetFrustum()
 
 FLOAT4X4 __device__ __host__ inline  Float4x4Transpose(const FLOAT4X4& other)
 {
@@ -599,4 +637,174 @@ __device__ __host__ inline void Clamp(_Ty& t, _Ty min, _Ty max)
 	{
 		t = max;
 	}
+}
+
+// AABB
+
+struct AABB
+{
+	FLOAT3 Center;
+	FLOAT3 Extend;
+
+	__device__ __host__ AABB(const FLOAT3& min, const FLOAT3& max)
+		: Center(FLOAT3(min.x + (max.x * 0.5f), min.y + (max.y * 0.5f), min.z + (max.z * 0.5f))),
+		Extend(FLOAT3(max.x - Center.x, max.y - Center.y, max.z - Center.z))
+	{
+
+	}
+
+	__device__ __host__ AABB(const AABB& right)
+		: Center(right.Center), Extend(right.Extend)
+	{
+
+	}
+
+	__device__ __host__ AABB()
+	{
+
+	}
+
+	__device__ __host__ FLOAT3 Min() const
+	{
+		return Center - Extend;
+	}
+
+	__device__ __host__ FLOAT3 Max() const
+	{
+		return Center + Extend;
+	}
+};
+
+
+//__device__ __host__ inline AABB GetAABB(const FLOAT4X4& m)
+//{
+//	float determ = Float4x4Determinant(m);
+//	FLOAT4X4 inv = Float4x4Multiply(m, 1.0f / determ);
+//
+//	FLOAT3 center;
+//
+//
+//	
+//}
+
+
+
+// Frustum
+
+struct Frustum
+{
+	
+	FLOAT4 Bottom;
+	FLOAT4 Top;
+	FLOAT4 Left;
+	FLOAT4 Right;
+	FLOAT4 Near;
+	FLOAT4 Far;
+
+	__device__ __host__ Frustum()
+	{
+
+	}
+
+	__device__ __host__ Frustum(const FLOAT4& bottom, const FLOAT4& top,
+		const FLOAT4& left, const FLOAT4& right,
+		const FLOAT4& n, const FLOAT4& f)
+		: Bottom(bottom), Top(top), Left(left), Right(right), Near(n), Far(f)
+	{
+
+	}
+
+	__device__ __host__ Frustum(const Frustum& right)
+		: Bottom(right.Bottom), Top(right.Top), Left(right.Left), Right(right.Right), Near(right.Near), Far(right.Far)
+	{
+
+	}
+};
+
+inline __device__ __host__ Frustum GetFrustum(const FLOAT4X4& m)
+{
+	Frustum frs;
+
+	frs.Left = FLOAT4(m._41 + m._11, m._42 + m._12, m._43 + m._13, m._44 + m._14);
+	frs.Right = FLOAT4(m._41 - m._11, m._42 - m._12, m._43 - m._13, m._44 - m._14);
+	frs.Bottom = FLOAT4(m._41 + m._21, m._42 + m._22, m._43 + m._23, m._44 + m._24);
+	frs.Top = FLOAT4(m._41 - m._21, m._42 - m._22, m._43 - m._23, m._44 - m._24);
+	frs.Near = FLOAT4(m._41 + m._31, m._42 + m._32, m._43 + m._33, m._44 + m._34);
+	frs.Far = FLOAT4(m._41 - m._31, m._42 - m._32, m._43 - m._33, m._44 - m._34);
+
+	return frs;
+}
+
+inline __device__ __host__ int AABBFrustum(const AABB& aabb, const Frustum& frs)
+{
+	float m, n;
+	int result = 1;
+
+	m = (aabb.Min().x * frs.Bottom.x) + (aabb.Min().y * frs.Bottom.y) + (aabb.Min().z * frs.Bottom.z) + frs.Bottom.w;
+	n = (aabb.Max().x * fabs(frs.Bottom.x)) + (aabb.Max().y * fabs(frs.Bottom.y)) + (aabb.Max().z * fabs(frs.Bottom.z));
+	
+	if (m > -frs.Bottom.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Bottom.w)
+	{
+		return 0;
+	}
+
+	m = (aabb.Min().x * frs.Top.x) + (aabb.Min().y * frs.Top.y) + (aabb.Min().z * frs.Top.z) + frs.Top.w;
+	n = (aabb.Max().x * fabs(frs.Top.x)) + (aabb.Max().y * fabs(frs.Top.y)) + (aabb.Max().z * fabs(frs.Top.z));
+	if (m > -frs.Top.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Top.w)
+	{
+		return 0;
+	}
+
+	m = (aabb.Min().x * frs.Left.x) + (aabb.Min().y * frs.Left.y) + (aabb.Min().z * frs.Left.z) + frs.Left.w;
+	n = (aabb.Max().x * fabs(frs.Left.x)) + (aabb.Max().y * fabs(frs.Left.y)) + (aabb.Max().z * fabs(frs.Left.z));
+	if (m > -frs.Left.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Left.w)
+	{
+		return 0;
+	}
+	m = (aabb.Min().x * frs.Right.x) + (aabb.Min().y * frs.Right.y) + (aabb.Min().z * frs.Right.z) + frs.Right.w;
+	n = (aabb.Max().x * fabs(frs.Right.x)) + (aabb.Max().y * fabs(frs.Right.y)) + (aabb.Max().z * fabs(frs.Right.z));
+	if (m > -frs.Right.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Right.w)
+	{
+		return 0;
+	}
+
+
+	m = (aabb.Min().x * frs.Near.x) + (aabb.Min().y * frs.Near.y) + (aabb.Min().z * frs.Near.z) + frs.Near.w;
+	n = (aabb.Max().x * fabs(frs.Near.x)) + (aabb.Max().y * fabs(frs.Near.y)) + (aabb.Max().z * fabs(frs.Near.z));
+	if (m > -frs.Near.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Near.w)
+	{
+		return 0;
+	}
+
+	m = (aabb.Min().x * frs.Far.x) + (aabb.Min().y * frs.Far.y) + (aabb.Min().z * frs.Far.z) + frs.Far.w;
+	n = (aabb.Max().x * fabs(frs.Far.x)) + (aabb.Max().y * fabs(frs.Far.y)) + (aabb.Max().z * fabs(frs.Far.z));
+	if (m > -frs.Far.w)
+	{
+		return -1;
+	}
+	if (n > -frs.Far.w)
+	{
+		return 0;
+	}
+	return result;
 }

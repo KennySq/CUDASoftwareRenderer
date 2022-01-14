@@ -40,8 +40,8 @@ public:
 
 		}
 
-		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB& aabb, const FLOAT3& barycentric)
-			: Bound(aabb), Barycentric(barycentric)
+		__device__ __host__ Triangle(const VertexOutput& vo0, const VertexOutput& vo1, const VertexOutput& vo2, const AABB2D& aabb, const FLOAT3& barycentric, const FLOAT3& surfaceNormal)
+			: Bound(aabb), Barycentric(barycentric), SurfaceNormal(surfaceNormal)
 		{
 			FragmentInput[0] = vo0;
 			FragmentInput[1] = vo1;
@@ -49,7 +49,7 @@ public:
 		}
 
 		__device__ __host__ Triangle(const Triangle& right)
-			: Bound(right.Bound), Barycentric(right.Barycentric)
+			: Bound(right.Bound), Barycentric(right.Barycentric), SurfaceNormal(right.SurfaceNormal)
 		{
 			FragmentInput[0] = right.FragmentInput[0];
 			FragmentInput[1] = right.FragmentInput[1];
@@ -57,8 +57,9 @@ public:
 		}
 
 		VertexOutput FragmentInput[3];
-		AABB Bound;
+		AABB2D Bound;
 		FLOAT3 Barycentric;
+		FLOAT3 SurfaceNormal;
 	};
 	
 	Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs);
@@ -71,20 +72,18 @@ public:
 
 	void ClearCanvas(const ColorRGBA& clearColor);
 	void ClearDepth();
-	void SetPixel(int x, int y, const ColorRGBA& color);
-	void SetPixelNDC(float x, float y, const ColorRGBA& color);
-	void SetTriangle(const Point2D& p0, const Point2D& p1, const Point2D& p2);
+	void DrawTexture(std::shared_ptr<DeviceTexture> texture, int x, int y);
 
 	void OutText(int x, int y, std::string str);
 
 	void Present();
 	
-	void DrawScreen();
 	void DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer, std::shared_ptr<DeviceBuffer> indexBuffer,
 		std::shared_ptr<DeviceBuffer> fragmentBuffer, std::shared_ptr<DeviceBuffer> triangleBuffer, 
 		unsigned int vertexCount, unsigned int indexCount, 
 		const FLOAT4X4& transform, const FLOAT4X4& view, const FLOAT4X4& projection);
 
+	void BindTexture(std::shared_ptr<DeviceTexture> texture, unsigned int index);
 	
 private:
 
@@ -96,6 +95,7 @@ private:
 	cudaStream_t mFragmentStream;
 
 	Point2D* mRenderPoints;
+
 
 	unsigned int mPointCount;
 

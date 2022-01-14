@@ -19,6 +19,7 @@ public:
 		return mInstance;
 	}
 
+	std::shared_ptr<DeviceTexture> CreateTextureFromFile(const char* path);
 	std::shared_ptr<DeviceTexture> CreateTexture2D(unsigned int width, unsigned height);
 	std::shared_ptr<DeviceBuffer> CreateBuffer(size_t stride, unsigned int count, void* subResource = nullptr);
 

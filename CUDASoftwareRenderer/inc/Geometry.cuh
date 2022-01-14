@@ -45,26 +45,26 @@ struct VertexOutput
 
 };
 
-struct AABB
+struct AABB2D
 {
-	__device__ __host__ AABB()
+	__device__ __host__ AABB2D()
 	{
 
 	}
 
-	__device__ __host__ AABB(const FLOAT2& _min, const FLOAT2& _max)
+	__device__ __host__ AABB2D(const INT2& _min, const INT2& _max)
 		: Min(_min), Max(_max)
 	{
 
 	}
 
-	__device__ __host__ AABB(const AABB& right)
+	__device__ __host__ AABB2D(const AABB2D& right)
 		: Min(right.Min), Max(right.Max)
 	{
 
 	}
-	FLOAT2 Min;
-	FLOAT2 Max;
+	INT2 Min;
+	INT2 Max;
 };
 
 inline SampleVertex ConvertVertex(const Vertex& v)
