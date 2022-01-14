@@ -231,6 +231,11 @@ inline __device__ __host__ FLOAT2  operator-(const FLOAT2& v1, const FLOAT2& v2)
 	return FLOAT2(v1.x - v2.x, v1.y - v2.y);
 }
 
+inline __device__ __host__ FLOAT2  operator-(const FLOAT2& v)
+{
+	return FLOAT2(-v.x, -v.y);
+}
+
 inline __device__ __host__ void  operator-=(FLOAT2& v1, const FLOAT2& v2)
 {
 	v1.x -= v2.x;
