@@ -47,7 +47,7 @@ std::shared_ptr<DeviceTexture> ResourceManager::CreateTextureFromFile(const char
 
 	void* ptr = mMemory->Alloc(byteSize);
 
-	std::shared_ptr<DeviceTexture> texture = std::make_shared<DeviceTexture>(ptr, byteSize);
+	std::shared_ptr<DeviceTexture> texture = std::make_shared<DeviceTexture>(ptr, byteSize, width, height);
 
 	cudaError_t cuError = cudaMalloc(reinterpret_cast<void**>(&deviceTextureBuffer), byteSize);
 	CUDAError(cuError);
@@ -70,7 +70,7 @@ std::shared_ptr<DeviceTexture> ResourceManager::CreateTexture2D(unsigned int wid
 
 	void* ptr = mMemory->Alloc(byteSize);
 
-	std::shared_ptr<DeviceTexture> texture = std::make_shared<DeviceTexture>(ptr, byteSize);
+	std::shared_ptr<DeviceTexture> texture = std::make_shared<DeviceTexture>(ptr, byteSize, width, height);
 
 	texture->mWidth = width;
 	texture->mHeight;
