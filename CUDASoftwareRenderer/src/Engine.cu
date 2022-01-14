@@ -127,8 +127,6 @@ void Engine::Update(float delta, float time)
 	transform0, view, projection);
 
 	mRenderer->DrawTexture(mTexture, 0, 0);
-
-	//mRenderer->DrawTriangles(mVertexBuffer1, mIndexBuffer1, mFragmentBuffer1, mTriangleBuffer1, mVertexCount1, mIndexCount1, transform1, view, projection);
 	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));
 
 	
