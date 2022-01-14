@@ -177,6 +177,7 @@
     <ClInclude Include="inc\KernelCommandList.cuh" />
     <ClInclude Include="inc\Renderer.cuh" />
     <ClInclude Include="inc\ResourceManager.cuh" />
+    <ClInclude Include="inc\ShaderRegisterManager.cuh" />
     <ClInclude Include="inc\Util.h" />
     <CudaCompile Include="src\3DMath.cu" />
     <CudaCompile Include="src\DeviceBuffer.cu" />
@@ -193,6 +194,7 @@
     <CudaCompile Include="src\KernelCommandList.cu" />
     <CudaCompile Include="src\Renderer.cu" />
     <CudaCompile Include="src\ResourceManager.cu" />
+    <CudaCompile Include="src\ShaderRegisterManager.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\CUDASoftwareRenderer.h" />
