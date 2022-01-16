@@ -52,7 +52,6 @@ Renderer::Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs
 
 Renderer::~Renderer()
 {
-	Release();
 }
 
 __global__ void KernelDrawTexture(DWORD* texture, DWORD* buffer, int x, int y, unsigned int width)
@@ -72,7 +71,8 @@ void Renderer::DrawTexture(std::shared_ptr<DeviceTexture> texture, int x, int y)
 	void* ptr = texture->GetVirtual();
 
 	dim3 block = dim3(32, 32, 1);
-	dim3 grid = dim3(64 / 32, 64 / 32, 1);
+	
+	dim3 grid = dim3(texture->GetWidth() / 32, texture->GetHeight() / 32, 1);
 	KernelDrawTexture << <grid, block >> > (CAST_PIXEL(ptr), CAST_PIXEL(mBuffer->GetVirtual()), x, y, 64);
 
 	return;
@@ -214,7 +214,7 @@ __device__ float DeviceInterpolateDepth(const Renderer::Triangle& triangle, floa
 	FLOAT3 ndc1 = HomogeneousToNDC(projected1);
 	FLOAT3 ndc2 = HomogeneousToNDC(projected2);
 
-	float z = -(u * ndc0.z + v * ndc1.z + w * ndc2.z);
+	float z = -(u * projected0.z + v * projected1.z + w * projected2.z);
 
 	return fn0 + z * fn1 * 0.5f;
 }
@@ -261,13 +261,13 @@ __device__ FLOAT4 DeviceSampleTexture(void* texture, const FLOAT2& uv, unsigned 
 __device__ FLOAT4 DeviceFragmentShader(ShaderRegisterManager* regManager, const VertexOutput output[3], float u, float v, float w)
 {
 	VertexOutput interp = DeviceInterpolateFragment(output[0], output[1], output[2], u, v, w);
-
 	ShaderRegisterManager::Register texture = regManager->Get(0, eRegisterType::REGISTER_TEXTURE);
+
 	FLOAT2 uv = interp.Texcoord;
 
 	FLOAT4 sampledTexture = DeviceSampleTexture(texture.Resource, uv, texture.Width, texture.Height);
 
-	return sampledTexture;//FLOAT4(sampledTexture, interp.Texcoord.y, 0.0f, 1.0f);
+	return sampledTexture;
 }
 
 __device__  void DeviceDrawLine(ShaderRegisterManager* regManager, DWORD* buffer, DWORD* depth,
@@ -356,7 +356,7 @@ __device__  void DeviceDrawLine(ShaderRegisterManager* regManager, DWORD* buffer
 	}
 	else
 	{
-		for (int i = 0; i <= d; i++)
+		for (int i = 0; i < d; i++)
 		{
 			unsigned int index = (point.y * width) + point.x;
 
@@ -575,7 +575,6 @@ __device__ FLOAT3 DeviceGetBarycentric(const FLOAT4& p0, const FLOAT4& p1, const
 	result.y = ((s4 * s2) - (s0 * s3)) / ((s2 * s1) - (s3 * s3));
 
 	return result;
-
 }
 
 __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
@@ -620,14 +619,11 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	VertexOutput o0 = VertexOutput(position0, normal0, texcoord0);
 	VertexOutput o1 = VertexOutput(position1, normal1, texcoord1);
 	VertexOutput o2 = VertexOutput(position2, normal2, texcoord2);
-	//33, 34
 
 	output[triThread] = o0;
 	output[triThread + 1] = o1;
 	output[triThread + 2] = o2;
 
-	//return;
-		// testing project to clip space transform
 	FLOAT3 ndcPosition0 = HomogeneousToNDC(position0);
 	FLOAT3 ndcPosition1 = HomogeneousToNDC(position1);
 	FLOAT3 ndcPosition2 = HomogeneousToNDC(position2);
