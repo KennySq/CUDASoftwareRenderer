@@ -51,7 +51,7 @@ inline __device__ __host__ ColorRGBA ConvertDWORDToColor(const DWORD& texel)
 	float z = b / 255.999f;
 	float w = a / 255.999f;
 
-	return ColorRGBA(x,y,z,w);
+	return ColorRGBA(x, y, z, w);
 }
 
 inline __device__ __host__ DWORD PackDepth(float depth)
