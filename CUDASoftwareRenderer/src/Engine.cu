@@ -10,17 +10,7 @@ Engine::Engine(HWND hWnd)
 	mResources(ResourceManager::GetInstance()),
 	mRenderer(std::make_unique<Renderer>(mDIB, mResources))
 {
-	char buffer[256];
-	GetModuleFileNameA(nullptr, buffer, 256);
-	std::string workingPath = buffer;
-	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
-	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
-	workingPath = workingPath.substr(0, workingPath.find_last_of("\\"));
-	std::string resourcePath0 = workingPath;
-	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\Kenny_Texture.png";
 
-	mTexture = mResources->CreateTextureFromFile(resourcePath0.c_str());
-		
 
 }
 
@@ -35,9 +25,11 @@ void Engine::Start()
 
 	std::string resourcePath0 = workingPath;
 	std::string resourcePath1 = workingPath;
+	std::string resourcePath2 = workingPath;
 
 	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\steve.fbx";
 	resourcePath1 += "\\CUDASoftwareRenderer\\assets\\sphere.fbx";
+	resourcePath2 += "\\CUDASoftwareRenderer\\assets\\Kenny_Texture.png";
 
 	FbxLoader sampleLoader0(resourcePath0.c_str());
 	FbxLoader sampleLoader1(resourcePath1.c_str());
@@ -48,6 +40,7 @@ void Engine::Start()
 	mVertexCount1 = sampleLoader1.Vertices.size();
 	mIndexCount1 = sampleLoader1.Indices.size();
 
+	mTexture = mResources->CreateTextureFromFile(resourcePath2.c_str());
 
 	std::vector<SampleVertex> vertices0;
 	std::vector<SampleVertex> vertices1;
@@ -115,9 +108,9 @@ void Engine::Update(float delta, float time)
 //	view._41 = (sin(time) * 20.0f);
 
 
-	//transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
+//	transform0 = Float4x4Multiply(transform0, Float4x4RotationX(delta));
 	transform0 = Float4x4Multiply(transform0, Float4x4RotationY(delta));
-	//transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
+//	transform0 = Float4x4Multiply(transform0, Float4x4RotationZ(delta));
 	
 	mRenderer->BindTexture(mTexture, 0);
 
@@ -135,11 +128,12 @@ void Engine::Update(float delta, float time)
 void Engine::Render(float delta)
 {
 	mRenderer->Present();
-
 }
 
 void Engine::Destroy()
 {
+	mRenderer->Release();
+	
 }
 
 void Engine::RButtonDown(int x, int y)
