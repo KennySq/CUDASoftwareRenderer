@@ -174,7 +174,6 @@
     <ClInclude Include="inc\DIB.cuh" />
     <ClInclude Include="inc\Engine.cuh" />
     <ClInclude Include="inc\Geometry.cuh" />
-    <ClInclude Include="inc\KernelCommandList.cuh" />
     <ClInclude Include="inc\Renderer.cuh" />
     <ClInclude Include="inc\ResourceManager.cuh" />
     <ClInclude Include="inc\ShaderRegisterManager.cuh" />
@@ -191,7 +190,6 @@
       <FileType>Document</FileType>
     </CudaCompile>
     <CudaCompile Include="src\Geometry.cu" />
-    <CudaCompile Include="src\KernelCommandList.cu" />
     <CudaCompile Include="src\Renderer.cu" />
     <CudaCompile Include="src\ResourceManager.cu" />
     <CudaCompile Include="src\ShaderRegisterManager.cu" />

@@ -93,9 +93,6 @@
     <ClInclude Include="inc\Color.cuh">
       <Filter>CUDA 헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="inc\KernelCommandList.cuh">
-      <Filter>CUDA 헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="inc\DeviceBuffer.cuh">
       <Filter>CUDA 헤더 파일</Filter>
     </ClInclude>
@@ -129,9 +126,6 @@
       <Filter>CUDA 소스 파일</Filter>
     </CudaCompile>
     <CudaCompile Include="src\ResourceManager.cu">
-      <Filter>CUDA 소스 파일</Filter>
-    </CudaCompile>
-    <CudaCompile Include="src\KernelCommandList.cu">
       <Filter>CUDA 소스 파일</Filter>
     </CudaCompile>
     <CudaCompile Include="src\DeviceBuffer.cu">
