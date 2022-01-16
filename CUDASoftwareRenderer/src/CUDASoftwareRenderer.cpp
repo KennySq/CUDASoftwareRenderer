@@ -19,7 +19,6 @@ double gFrametime = 0.0f;
 
 std::unique_ptr<Engine> gEngine;
 
-// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -56,7 +55,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     double tStart = clock();
     double tEnd = clock();
-    
 
     // 기본 메시지 루프입니다:
     while (msg.message != WM_QUIT)
