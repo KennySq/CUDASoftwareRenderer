@@ -7,16 +7,6 @@ using namespace std;
 
 struct INT2
 {
-	static  __device__ __host__ INT2 Min(const INT2& from, const INT2& to)
-	{
-		return from.x + from.y < to.x + to.y ? from : to;
-	}
-
-	static  __device__ __host__ INT2 Max(const INT2& from, const INT2& to)
-	{
-		return from.x + from.y > to.x + to.y ? from : to;
-	}
-
 	__device__ __host__ inline float Length()
 	{
 		return sqrtf(x * x + y * y);
@@ -226,12 +216,12 @@ inline __device__ __host__ void  operator+=(FLOAT2& v1, const FLOAT2& v2)
 	v1.y += v2.y;
 }
 
-inline __device__ __host__ FLOAT2  operator-(const FLOAT2& v1, const FLOAT2& v2)
+inline __device__ __host__ FLOAT2 operator-(const FLOAT2& v1, const FLOAT2& v2)
 {
 	return FLOAT2(v1.x - v2.x, v1.y - v2.y);
 }
 
-inline __device__ __host__ FLOAT2  operator-(const FLOAT2& v)
+inline __device__ __host__ FLOAT2 operator-(const FLOAT2& v)
 {
 	return FLOAT2(-v.x, -v.y);
 }
@@ -241,7 +231,6 @@ inline __device__ __host__ void  operator-=(FLOAT2& v1, const FLOAT2& v2)
 	v1.x -= v2.x;
 	v1.y -= v2.y;
 }
-
 
 inline __device__ __host__ FLOAT2  operator*(const FLOAT2& v1, float s)
 {
@@ -421,10 +410,8 @@ FLOAT3 __device__ __host__ inline Float3Normalize(const FLOAT3& v)
 	return v / Float3Length(v);
 }
 
-
 float __device__ __host__ inline  Float4Length(const FLOAT4& v)
 {
-
 	return sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
 }
 
