@@ -36,8 +36,8 @@ void Engine::Start()
 	std::string resourcePath0 = workingPath;
 	std::string resourcePath1 = workingPath;
 
-	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\steve.fbx";
-	resourcePath1 += "\\CUDASoftwareRenderer\\assets\\sphere.fbx";
+	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\slim-steve.fbx";
+	resourcePath1 += "\\CUDASoftwareRenderer\\assets\\hotdog.fbx";
 
 	FbxLoader sampleLoader0(resourcePath0.c_str());
 	FbxLoader sampleLoader1(resourcePath1.c_str());
@@ -103,28 +103,34 @@ void Engine::Start()
 
 void Engine::Update(float delta, float time)
 {
-	mRenderer->ClearCanvas(ColorRGBA(1.0f, 1.0f,1.0f, 1.0f));
+	mRenderer->ClearCanvas(ColorRGBA(1.0f, 1.0f,0.0f, 0.0f));
 	mRenderer->ClearDepth();
 	static FLOAT4X4 transform0 = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
-	static FLOAT4X4 transform1 = Float4x4Multiply(Float4x4Multiply(Float4x4Translate(FLOAT3(-3, 0, 0) ), Float4x4RotationX(-90.0f)), Float4x4Scale(FLOAT3(10, 10, 10)));
+	static FLOAT4X4 transform1 = Float4x4Multiply(transform0, Float4x4Scale(FLOAT3(1.1f, 1.1f, 1.1f)));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 
 	view._42 = 0.0f;
-	view._43 = 60.0f + (sin(time) * 5.0f);
+	view._43 = 10.0f;
 //	view._41 = (sin(time) * 20.0f);
 
 
 	//transform = Float4x4Multiply(transform, Float4x4RotationX(delta));
 	transform0 = Float4x4Multiply(transform0, Float4x4RotationY(delta));
-	//transform = Float4x4Multiply(transform, Float4x4RotationZ(delta));
-	
+	//transform1 = Float4x4Multiply(transform1, Float4x4RotationY(delta));
+	transform1._43 = -sin(time) * 2.0f;
+
 	mRenderer->BindTexture(mTexture, 0);
 
 	mRenderer->DrawTriangles(mVertexBuffer0, mIndexBuffer0,
 		mFragmentBuffer0, mTriangleBuffer0, 
 		mVertexCount0, mIndexCount0, 
 	transform0, view, projection);
+
+	//mRenderer->DrawTriangles(mVertexBuffer1, mIndexBuffer1,
+	//	mFragmentBuffer1, mTriangleBuffer1,
+	//	mVertexCount1, mIndexCount1,
+	//	transform1, view, projection);
 
 	mRenderer->DrawTexture(mTexture, 0, 0);
 	mRenderer->OutText(0, 0, std::to_string(1.0f / delta));

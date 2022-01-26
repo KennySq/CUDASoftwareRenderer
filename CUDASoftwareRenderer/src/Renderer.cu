@@ -341,7 +341,18 @@ __device__  void DeviceDrawLine(ShaderRegisterManager* regManager, DWORD* buffer
 			{
 				FLOAT4 result = DeviceFragmentShader(regManager, triangle.FragmentInput, u, v, w);
 
-				DeviceSetPixel(buffer, index, ColorRGBA(result.x, result.y, result.z, result.w));
+				ColorRGBA sample = ConvertDWORDToColor(DeviceGetPixel(buffer, index));
+
+				FLOAT4 samplef4 = FLOAT4(sample.r, sample.g, sample.b, sample.a);
+
+				float a0 = sample.a;
+				float a1 = result.w;
+
+				float denomAlpha = a0 + a1 * (1.0f - a0);
+
+				FLOAT4 blendedColor = ((samplef4 * a0) + (result * a1) * (1.0f - a0) )/ denomAlpha;
+
+				DeviceSetPixel(buffer, index, ColorRGBA(result.x, result.y, result.z, denomAlpha));
 			}
 
 			point.x += sx;
