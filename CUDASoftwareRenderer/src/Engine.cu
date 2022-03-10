@@ -36,7 +36,7 @@ void Engine::Start()
 	std::string resourcePath0 = workingPath;
 	std::string resourcePath1 = workingPath;
 
-	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\slim-steve.fbx";
+	resourcePath0 += "\\CUDASoftwareRenderer\\assets\\steve.fbx";
 	resourcePath1 += "\\CUDASoftwareRenderer\\assets\\hotdog.fbx";
 
 	FbxLoader sampleLoader0(resourcePath0.c_str());
@@ -111,7 +111,7 @@ void Engine::Update(float delta, float time)
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 
 	view._42 = 0.0f;
-	view._43 = 10.0f;
+	view._43 = 60.0f;
 //	view._41 = (sin(time) * 20.0f);
 
 
