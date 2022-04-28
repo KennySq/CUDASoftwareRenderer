@@ -23,7 +23,7 @@ public:
 	}
 
 
-private:
+protected:
 	struct MemoryBlock
 	{
 		MemoryBlock(void* entity, size_t offset)

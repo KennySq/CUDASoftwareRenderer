@@ -92,6 +92,8 @@ void Engine::Start()
 
 	DWORD packedDepth = PackDepth(0.998f);
 
+
+	mRenderer->Start();
 }
 
 void Engine::Update(float delta, float time)
