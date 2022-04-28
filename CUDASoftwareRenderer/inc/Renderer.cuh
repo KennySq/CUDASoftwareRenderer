@@ -9,10 +9,13 @@ struct ColorRGBA;
 #include"3DMath.cuh"
 #include"Color.cuh"
 #include"Geometry.cuh"
+#include"DeviceMemory.cuh"
+#include"DeviceVector.cuh"
 
 struct Renderer
 {
 public:
+
 	struct Point2D
 	{
 		__device__ __host__ Point2D()
@@ -62,6 +65,18 @@ public:
 		FLOAT3 SurfaceNormal;
 	};
 	
+	struct Tile
+	{
+		__device__ Tile(size_t trianglePerTile)
+			: Triangles(trianglePerTile)
+		{
+
+		}
+
+		DeviceVector<Renderer::Triangle*> Triangles;
+	};
+
+
 	Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs);
 	~Renderer();
 
@@ -96,6 +111,9 @@ private:
 
 	Point2D* mRenderPoints;
 
+	dim3 mRasterizerGrid;
+	dim3 mRasterizerBlock;
+	std::shared_ptr<DeviceBuffer> mTileBuffer;
 
 	unsigned int mPointCount;
 
