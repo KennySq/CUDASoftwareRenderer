@@ -154,6 +154,9 @@
   <ItemGroup>
     <ClCompile Include="Lodepng\src\lodepng.cpp" />
     <ClCompile Include="src\CUDASoftwareRenderer.cpp" />
+    <CudaCompile Include="src\DeviceVector.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\Util.cpp" />
   </ItemGroup>
@@ -171,6 +174,7 @@
     <ClInclude Include="inc\DeviceEntity.cuh" />
     <ClInclude Include="inc\DeviceMemory.cuh" />
     <ClInclude Include="inc\DeviceTexture.cuh" />
+    <ClInclude Include="inc\DeviceVector.cuh" />
     <ClInclude Include="inc\DIB.cuh" />
     <ClInclude Include="inc\Engine.cuh" />
     <ClInclude Include="inc\Geometry.cuh" />
@@ -200,6 +204,9 @@
     <ClInclude Include="inc\pch.h" />
     <ClInclude Include="inc\Resource.h" />
     <ClInclude Include="inc\targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

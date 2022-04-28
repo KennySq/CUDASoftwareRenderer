@@ -105,6 +105,9 @@
     <ClInclude Include="inc\ShaderRegisterManager.cuh">
       <Filter>CUDA 헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="inc\DeviceVector.cuh">
+      <Filter>CUDA 헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\Engine.cu">
@@ -140,5 +143,11 @@
     <CudaCompile Include="src\ShaderRegisterManager.cu">
       <Filter>CUDA 소스 파일</Filter>
     </CudaCompile>
+    <CudaCompile Include="src\DeviceVector.cu">
+      <Filter>CUDA 소스 파일</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>
