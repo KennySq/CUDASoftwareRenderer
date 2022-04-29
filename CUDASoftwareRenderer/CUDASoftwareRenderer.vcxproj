@@ -132,6 +132,10 @@
       <AdditionalDependencies>cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>wWinMainCRTStartup</EntryPointSymbol>
     </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <CodeGeneration>compute_52,sm_52</CodeGeneration>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
