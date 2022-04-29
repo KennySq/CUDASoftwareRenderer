@@ -1,5 +1,5 @@
 #pragma once
-
+#include<pch.h>
 class DeviceVector
 {
 public:
@@ -11,17 +11,7 @@ public:
 	{
 
 	}
-	__device__ void Add(void* data, size_t size)
-	{
-		size_t ptr = reinterpret_cast<size_t>(mVirtual) + mOffset;
-		void* casted = reinterpret_cast<void*>(ptr);
-
-		memcpy(casted, &data, size);
-		mOffset += size;
-		mCount++;
-
-		return;
-	}
+	__device__ void Add(void* data, size_t size);
 
 	__device__ void* GetData()
 	{
@@ -30,7 +20,7 @@ public:
 
 	__device__ void Clear()
 	{
-		memset(mVirtual, 0xCD, mOffset);
+		memset(&mVirtual, 0x00, mOffset);
 		mOffset = 0;
 		mCount = 0;
 	}
@@ -46,3 +36,4 @@ private:
 	size_t mSize;
 	size_t mCount;
 };
+
