@@ -1,34 +1,31 @@
 #pragma once
 
-template<typename _Ty>
 class DeviceVector
 {
 public:
-	__device__ DeviceVector(size_t capacity)
-		: mSize(sizeof(_Ty)* capacity), mVirtual(new _Ty[sizeof(_Ty) * capacity]), mCount(0)
+	__device__ DeviceVector(size_t count, size_t stride)
+		: mSize(stride * count), mCount(0), mVirtual(malloc(stride * count)), mOffset(0)
 	{
 	}
 	__device__ ~DeviceVector()
 	{
-		delete[] mVirtual;
+
 	}
-	__device__ void Add(const _Ty& data)
+	__device__ void Add(void* data, size_t size)
 	{
 		size_t ptr = reinterpret_cast<size_t>(mVirtual) + mOffset;
 		void* casted = reinterpret_cast<void*>(ptr);
 
-		size_t typeSize = sizeof(_Ty);
-		((_Ty*)casted)[mCount] = data;
-		//memcpy(casted, &data, typeSize);
-		mOffset += typeSize;
+		memcpy(casted, &data, size);
+		mOffset += size;
 		mCount++;
 
 		return;
 	}
 
-	__device__ _Ty* GetData()
+	__device__ void* GetData()
 	{
-		return (_Ty*)mVirtual;
+		return mVirtual;
 	}
 
 	__device__ void Clear()
