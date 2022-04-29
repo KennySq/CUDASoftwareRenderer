@@ -612,11 +612,8 @@ __device__ void DeviceFillTriangle()
 
 __global__ void KernelTileRasterize(unsigned int width, unsigned int height, Renderer::Tile* tiles, unsigned int tileCount, ShaderRegisterManager* regManager, DWORD* buffer, DWORD* depth, FLOAT3 viewPosition)
 {
-	unsigned int dispatchThreads = gridDim.y * gridDim.x * blockDim.x * blockDim.y;
-
 	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 	int threadIndex = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
-	//int threadIndex = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 	int threadX = blockIdx.x * blockDim.x + threadIdx.x;
 	int threadY = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -635,9 +632,9 @@ __global__ void KernelTileRasterize(unsigned int width, unsigned int height, Ren
 	{
 		Renderer::Triangle* tri = triangles[i];
 
-		FLOAT4 p0 = tri->FragmentInput[0].Position;
-		FLOAT4 p1 = tri->FragmentInput[1].Position;
-		FLOAT4 p2 = tri->FragmentInput[2].Position;
+		//FLOAT4 p0 = tri->FragmentInput[0].Position;
+		//FLOAT4 p1 = tri->FragmentInput[1].Position;
+		//FLOAT4 p2 = tri->FragmentInput[2].Position;
 
 		//FLOAT3 n0 = HomogeneousToNDC(p0);
 		//FLOAT3 n1 = HomogeneousToNDC(p1);
@@ -659,8 +656,6 @@ __global__ void KernelTileRasterize(unsigned int width, unsigned int height, Ren
 		
 	}
 
-	__syncthreads();
-	
 	return;
 }
 
@@ -832,11 +827,8 @@ __global__ void KernelClearRasterizerBlocks(Renderer::Tile* tiles, unsigned int 
 	int threadIndex = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 	int threadX = blockIdx.x * blockDim.x + threadIdx.x;
 	int threadY = blockIdx.y * blockDim.y + threadIdx.y;
-
-	if (threadIndex >= tileCount)
-	{
-		return;
-	}
+	
+	threadIndex = blockIdx.y * blockDim.x + blockIdx.x;
 
 	tiles[threadIndex].Triangles.Clear();
 
@@ -900,14 +892,14 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
 
 	//void* args[] = { (void*)&width, (void*)&height, (void*)&tileVirtual, (void*)&tileCount, (void*)&deviceRegisterManager, (void*)CAST_PIXEL(buffer), (void*)CAST_PIXEL(depth), (void*)&viewPos };
 	//cudaLaunchCooperativeKernel(KernelTileRasterize, mRasterizerGrid, mRasterizerBlock, args, 0, nullptr);
-	std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
+	//std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
 
 	KernelTileRasterize <<<mRasterizerGrid, mRasterizerBlock>>>
 		(width, height, tileVirtual, tileCount, 
 			deviceRegisterManager, CAST_PIXEL(buffer), CAST_PIXEL(depth), viewPos);
 
 	//cudaDeviceSynchronize();
-	std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
+	//std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
 
 	KernelClearRasterizerBlocks << <clearGrid, clearBlock >> > (tileVirtual, tileCount);
 	//cudaDeviceSynchronize();
