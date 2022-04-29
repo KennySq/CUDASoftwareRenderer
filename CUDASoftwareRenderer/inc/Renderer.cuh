@@ -67,13 +67,18 @@ public:
 	
 	struct Tile
 	{
-		__device__ Tile(size_t trianglePerTile)
-			: Triangles(trianglePerTile)
+		__device__ Tile()
+			: Triangles(1024, sizeof(Renderer::Triangle*))
 		{
 
 		}
 
-		DeviceVector<Renderer::Triangle*> Triangles;
+		__device__ ~Tile()
+		{
+
+		}
+
+		DeviceVector Triangles;
 	};
 
 
@@ -114,6 +119,7 @@ private:
 	dim3 mRasterizerGrid;
 	dim3 mRasterizerBlock;
 	std::shared_ptr<DeviceBuffer> mTileBuffer;
+	std::shared_ptr<DeviceBuffer> mTileRoot;
 
 	unsigned int mPointCount;
 

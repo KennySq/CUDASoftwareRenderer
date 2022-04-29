@@ -9,6 +9,8 @@
 #include"Util.h"
 #include"ShaderRegisterManager.cuh"
 
+CUB_USE_COOPERATIVE_GROUPS;
+
 __device__ Renderer::Point2D* deviceDrawPoints = nullptr;
 __device__ ShaderRegisterManager* deviceRegisterManager = nullptr;
 
@@ -51,6 +53,13 @@ Renderer::Renderer(std::shared_ptr<DIB> dib, std::shared_ptr<ResourceManager> rs
 	mRasterizerBlock = dim3(32, 32, 1);
 	mRasterizerGrid = dim3((width + mRasterizerBlock.x - 1) / mRasterizerBlock.x, (height + mRasterizerBlock.y - 1) / mRasterizerBlock.y, 1);
 
+	cudaDeviceProp deviceProp;
+	error = cudaGetDeviceProperties(&deviceProp, 0);
+	CUDAError(error);
+
+	std::cout << "Cooperative Launch Support: " << deviceProp.cooperativeLaunch << '\n';
+
+
 }
 
 Renderer::~Renderer()
@@ -92,24 +101,29 @@ void Renderer::OutText(int x, int y, std::string str)
 
 __global__ void KernelGenerateDefaultTiles(Renderer::Tile* tiles, unsigned int tileCount)
 {
-	for (unsigned int i = 0; i < tileCount; i++)
-	{
-		tiles[i] = Renderer::Tile(8196);
-	}
+	unsigned int tileIndex = (threadIdx.y * blockDim.x) + threadIdx.x;
+	
+	Renderer::Tile* tile = &tiles[tileIndex];
+	tile = new (tile) Renderer::Tile;
+
+	return;
 }
 
 void Renderer::Start()
 {
-
+	
 	unsigned int width = mCanvas->GetWidth();
 	unsigned int height = mCanvas->GetHeight();
 
 	std::shared_ptr<ResourceManager> resourceManager = ResourceManager::GetInstance();
-	mTileBuffer = resourceManager->CreateBuffer(sizeof(Tile), mRasterizerGrid.x * mRasterizerGrid.y);
-
+	
 	unsigned int tileCount = mRasterizerGrid.x * mRasterizerGrid.y;
-	KernelGenerateDefaultTiles<<<1,1>>>((Tile*)mTileBuffer->GetVirtual(), tileCount);
+	mTileBuffer = resourceManager->CreateBuffer(sizeof(Tile), tileCount);
+	dim3 tileGrid = dim3(1, 1, 1);
+	dim3 tileBlock = dim3(mRasterizerGrid.x, mRasterizerGrid.y, 1);
 
+	KernelGenerateDefaultTiles << <tileGrid, tileBlock >> > ((Renderer::Tile*)mTileBuffer->GetVirtual(), tileCount);
+	cudaDeviceSynchronize();
 }
 
 void Renderer::Update(float delta)
@@ -522,7 +536,7 @@ __global__ void KernelRasterize(ShaderRegisterManager* regManager, DWORD* buffer
 	unsigned int threadPerTriangle = dispatchThreads / triangleCount;
 
 	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-	int threadId = blockId * (blockDim.x * blockDim.y)
+	int threadId = blockId * (blockDim.x *blockDim.y)
 		+ (threadIdx.y * blockDim.x) + threadIdx.x;
 
 	unsigned int triIndex = (threadId / threadPerTriangle);
@@ -596,7 +610,7 @@ __device__ void DeviceFillTriangle()
 
 }
 
-__global__ void KernelRasterize(unsigned int width, unsigned int height, Renderer::Tile* tiles, unsigned int tileCount, ShaderRegisterManager* regManager, DWORD* buffer, DWORD* depth, FLOAT3 viewPosition)
+__global__ void KernelTileRasterize(unsigned int width, unsigned int height, Renderer::Tile* tiles, unsigned int tileCount, ShaderRegisterManager* regManager, DWORD* buffer, DWORD* depth, FLOAT3 viewPosition)
 {
 	unsigned int dispatchThreads = gridDim.y * gridDim.x * blockDim.x * blockDim.y;
 
@@ -608,52 +622,45 @@ __global__ void KernelRasterize(unsigned int width, unsigned int height, Rendere
 
 	INT2 threadId = INT2(threadX, threadY);
 	// 40 * 23
-	if (blockId >= tileCount)
+	if (blockId >= tileCount || threadIndex >= width * height)
 	{
 		return;
 	}
 
 	Renderer::Tile* tile = &tiles[blockId];
 	size_t triangleCount = tile->Triangles.GetCount();
-	Renderer::Triangle** triangles = tile->Triangles.GetData();
+	Renderer::Triangle** triangles = (Renderer::Triangle**)tile->Triangles.GetData();
 
 	for (int i = 0; i < triangleCount; i++)
 	{
 		Renderer::Triangle* tri = triangles[i];
-		
-		//FLOAT4 p0 = tri->FragmentInput[0].Position;
-		//FLOAT4 p1 = tri->FragmentInput[1].Position;
-		//FLOAT4 p2 = tri->FragmentInput[2].Position;
 
 		FLOAT4 p0 = tri->FragmentInput[0].Position;
 		FLOAT4 p1 = tri->FragmentInput[1].Position;
 		FLOAT4 p2 = tri->FragmentInput[2].Position;
 
-		FLOAT3 n0 = HomogeneousToNDC(p0);
-		FLOAT3 n1 = HomogeneousToNDC(p1);
-		FLOAT3 n2 = HomogeneousToNDC(p2);
+		//FLOAT3 n0 = HomogeneousToNDC(p0);
+		//FLOAT3 n1 = HomogeneousToNDC(p1);
+		//FLOAT3 n2 = HomogeneousToNDC(p2);
 
-		INT2 c0 = NDCToClipSpace(n0, width, height);
-		INT2 c1 = NDCToClipSpace(n1, width, height);
-		INT2 c2 = NDCToClipSpace(n2, width, height);
+		//INT2 c0 = NDCToClipSpace(n0, width, height);
+		//INT2 c1 = NDCToClipSpace(n1, width, height);
+		//INT2 c2 = NDCToClipSpace(n2, width, height);
 
-		float u, v, w;
+		//float u, v, w;
 
-		DeviceGetBarycentricAreas(threadId, c0, c1, c2, u, v, w);
+		//DeviceGetBarycentricAreas(threadId, c0, c1, c2, u, v, w);
 
-		if (u == v == w)
-		{
-			DeviceSetPixel(buffer, threadIndex, ConvertColorToDWORD(ColorRGBA(1.0f, 1.0f, 0.0f, 0.0f)));
-		}
+		//if (u == v == w)
+		//{
+		//	DeviceSetPixel(buffer, threadIndex, ConvertColorToDWORD(ColorRGBA(1.0f, 1.0f, 0.0f, 0.0f)));
+		//}
 
-
+		
 	}
 
-	tile->Triangles.Clear();
-
+	__syncthreads();
 	
-	//int triangleIndex = 
-
 	return;
 }
 
@@ -711,7 +718,6 @@ __global__ void KernelTransformVertices(DWORD* buffer, DWORD* depth,
 	INT2 point0 = NDCToClipSpace(ndcPosition0, width, height);
 	INT2 point1 = NDCToClipSpace(ndcPosition1, width, height);
 	INT2 point2 = NDCToClipSpace(ndcPosition2, width, height);
-
 	AABB2D aabb = DeviceGetAABB(point0, point1, point2);
 	FLOAT3 barycentric = DeviceGetBarycentric(o0.Position, o1.Position, o2.Position);
 	FLOAT3 surfaceNormal = DeviceGetSurfaceNormal(v0.Position, v1.Position, v2.Position);
@@ -745,7 +751,8 @@ __global__ void KernelDrawCallSetPixel(DWORD* buffer, Renderer::Point2D* drawPoi
 
 }
 
-__global__ void KernelGenerateTriangleBoundingTiles(dim3 tileGrid, dim3 rasterizerBlock, unsigned int width, unsigned int height, Renderer::Tile* tiles, unsigned int tileCount, Renderer::Triangle* triangles, unsigned int triangleCount)
+__global__ void KernelGenerateTriangleBoundingTiles(dim3 tileGrid, dim3 rasterizerBlock, 
+	unsigned int width, unsigned int height, Renderer::Tile* tiles, unsigned int tileCount, Renderer::Triangle* triangles, unsigned int triangleCount)
 {
 	unsigned int threadIndex = (blockDim.x * blockIdx.x) + threadIdx.x;
 
@@ -754,10 +761,16 @@ __global__ void KernelGenerateTriangleBoundingTiles(dim3 tileGrid, dim3 rasteriz
 		return;
 	}
 
-	Renderer::Triangle tri = triangles[threadIndex];
-	FLOAT4 p0 = tri.FragmentInput[0].Position;
-	FLOAT4 p1 = tri.FragmentInput[1].Position;
-	FLOAT4 p2 = tri.FragmentInput[2].Position;
+	Renderer::Triangle* tri = &triangles[threadIndex];
+
+	if (tri == nullptr)
+	{
+		return;
+	}
+
+	FLOAT4 p0 = tri->FragmentInput[0].Position;
+	FLOAT4 p1 = tri->FragmentInput[1].Position;
+	FLOAT4 p2 = tri->FragmentInput[2].Position;
 
 	FLOAT3 n0 = HomogeneousToNDC(p0);
 	FLOAT3 n1 = HomogeneousToNDC(p1);
@@ -803,9 +816,29 @@ __global__ void KernelGenerateTriangleBoundingTiles(dim3 tileGrid, dim3 rasteriz
 
 			Renderer::Tile* tile = &tiles[tileIndex];
 
-			tile->Triangles.Add(&triangles[threadIndex]);
+			if (tile != nullptr)
+			{
+				tile->Triangles.Add((void*)tri, sizeof(Renderer::Triangle*));
+			}
 		}
 	}
+
+	return;
+}
+
+__global__ void KernelClearRasterizerBlocks(Renderer::Tile* tiles, unsigned int tileCount)
+{
+	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+	int threadIndex = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
+	int threadX = blockIdx.x * blockDim.x + threadIdx.x;
+	int threadY = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (threadIndex >= tileCount)
+	{
+		return;
+	}
+
+	tiles[threadIndex].Triangles.Clear();
 
 	return;
 }
@@ -831,8 +864,9 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
 	dim3 rasterBlock = dim3(24, 24, 1);
 	dim3 rasterGrid = dim3((width + rasterBlock.x - 1) / rasterBlock.x, (height + rasterBlock.y - 1) / rasterBlock.y, 1);
 
-	dim3 newRasterBlock = dim3(32, 32, 1);
-	
+	dim3 clearBlock = dim3(mRasterizerGrid.x, mRasterizerGrid.y, 1);
+	dim3 clearGrid = dim3(1, 1, 1);
+
 	if (transformGrid.x == 0)
 	{
 		transformGrid.x = 1;
@@ -860,12 +894,23 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
 
 	Tile* tileVirtual = reinterpret_cast<Tile*>(mTileBuffer->GetVirtual());
 	unsigned int tileCount = mRasterizerGrid.x * mRasterizerGrid.y;
-	KernelGenerateTriangleBoundingTiles << <transformGrid, transformBlock >> > (mRasterizerGrid, mRasterizerBlock, width, height, tileVirtual, tileCount, triangles, totalThread);
-	cudaDeviceSynchronize();
+	KernelGenerateTriangleBoundingTiles << <transformGrid, transformBlock >> >
+		(mRasterizerGrid, mRasterizerBlock, width, height, tileVirtual, tileCount, triangles, totalThread);
+//	cudaDeviceSynchronize();
 
+	//void* args[] = { (void*)&width, (void*)&height, (void*)&tileVirtual, (void*)&tileCount, (void*)&deviceRegisterManager, (void*)CAST_PIXEL(buffer), (void*)CAST_PIXEL(depth), (void*)&viewPos };
+	//cudaLaunchCooperativeKernel(KernelTileRasterize, mRasterizerGrid, mRasterizerBlock, args, 0, nullptr);
 	std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
-	KernelRasterize<<<mRasterizerGrid, mRasterizerBlock>>>(width, height, tileVirtual, tileCount, deviceRegisterManager, CAST_PIXEL(buffer), CAST_PIXEL(depth), viewPos);
-	cudaDeviceSynchronize();
+
+	KernelTileRasterize <<<mRasterizerGrid, mRasterizerBlock>>>
+		(width, height, tileVirtual, tileCount, 
+			deviceRegisterManager, CAST_PIXEL(buffer), CAST_PIXEL(depth), viewPos);
+
+	//cudaDeviceSynchronize();
+	std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
+
+	KernelClearRasterizerBlocks << <clearGrid, clearBlock >> > (tileVirtual, tileCount);
+	//cudaDeviceSynchronize();
 
 	//KernelRasterize << <rasterGrid, rasterBlock >> >
 	//	(deviceRegisterManager, CAST_PIXEL(buffer), CAST_PIXEL(depth),
