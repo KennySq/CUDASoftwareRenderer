@@ -98,20 +98,20 @@ void Engine::Start()
 
 void Engine::Update(float delta, float time)
 {
-	mRenderer->ClearCanvas(ColorRGBA(1.0f, 1.0f,1.0f, 1.0f));
+	mRenderer->ClearCanvas(ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
 	mRenderer->ClearDepth();
 	static FLOAT4X4 transform0 = Float4x4Multiply(FLOAT4X4::Identity(), Float4x4RotationX(-90.0f));
 	static FLOAT4X4 transform1 = Float4x4Multiply(Float4x4Multiply(Float4x4Translate(FLOAT3(-3, 0, 0) ), Float4x4RotationX(-90.0f)), Float4x4Scale(FLOAT3(10, 10, 10)));
 	static FLOAT4X4 view = Float4x4ViewMatrix(0, 0, 0);
 	static FLOAT4X4 projection = Float4x4ProjectionMatrix(0.01f, 100.0f, DegreeToRadian(90.0f), 1.777f);
 
-	view._42 = 0.0f;
-	view._43 = 60.0f + (sin(time) * 5.0f);
+	//view._42 = 0.0f;
+	view._43 = 60.0f;
 //	view._41 = (sin(time) * 20.0f);
 
 
 //	transform0 = Float4x4Multiply(transform0, Float4x4RotationX(delta));
-	transform0 = Float4x4Multiply(transform0, Float4x4RotationY(delta));
+//	transform0 = Float4x4Multiply(transform0, Float4x4RotationY(delta));
 //	transform0 = Float4x4Multiply(transform0, Float4x4RotationZ(delta));
 	
 	mRenderer->BindTexture(mTexture, 0);
