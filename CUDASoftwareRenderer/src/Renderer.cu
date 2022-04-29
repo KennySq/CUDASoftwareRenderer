@@ -122,7 +122,7 @@ void Renderer::Start()
 	dim3 tileGrid = dim3(1, 1, 1);
 	dim3 tileBlock = dim3(mRasterizerGrid.x, mRasterizerGrid.y, 1);
 
-	KernelGenerateDefaultTiles << <tileGrid, tileBlock >> > ((Renderer::Tile*)mTileBuffer->GetVirtual(), tileCount);
+//	KernelGenerateDefaultTiles << <tileGrid, tileBlock >> > ((Renderer::Tile*)mTileBuffer->GetVirtual(), tileCount);
 	cudaDeviceSynchronize();
 }
 
@@ -625,33 +625,42 @@ __global__ void KernelTileRasterize(unsigned int width, unsigned int height, Ren
 	}
 
 	Renderer::Tile* tile = &tiles[blockId];
-	size_t triangleCount = tile->Triangles.GetCount();
-	Renderer::Triangle** triangles = (Renderer::Triangle**)tile->Triangles.GetData();
+	size_t triangleCount = tile->Count;
 
 	for (int i = 0; i < triangleCount; i++)
 	{
-		Renderer::Triangle* tri = triangles[i];
+		Renderer::Triangle* tri = tile->Triangles[i];
 
-		//FLOAT4 p0 = tri->FragmentInput[0].Position;
-		//FLOAT4 p1 = tri->FragmentInput[1].Position;
-		//FLOAT4 p2 = tri->FragmentInput[2].Position;
+		if (tri == nullptr)
+		{
+			printf("Invalid Triangle Detected.\n");
+			return;
+		}
 
-		//FLOAT3 n0 = HomogeneousToNDC(p0);
-		//FLOAT3 n1 = HomogeneousToNDC(p1);
-		//FLOAT3 n2 = HomogeneousToNDC(p2);
+		FLOAT4 p0 = tri->FragmentInput[0].Position;
+		FLOAT4 p1 = tri->FragmentInput[1].Position;
+		FLOAT4 p2 = tri->FragmentInput[2].Position;
 
-		//INT2 c0 = NDCToClipSpace(n0, width, height);
-		//INT2 c1 = NDCToClipSpace(n1, width, height);
-		//INT2 c2 = NDCToClipSpace(n2, width, height);
+		FLOAT3 n0 = HomogeneousToNDC(p0);
+		FLOAT3 n1 = HomogeneousToNDC(p1);
+		FLOAT3 n2 = HomogeneousToNDC(p2);
 
-		//float u, v, w;
+		INT2 c0 = NDCToClipSpace(n0, width, height);
+		INT2 c1 = NDCToClipSpace(n1, width, height);
+		INT2 c2 = NDCToClipSpace(n2, width, height);
 
-		//DeviceGetBarycentricAreas(threadId, c0, c1, c2, u, v, w);
+		float u, v, w;
+		unsigned int pixelId = (threadId.y * width) + threadId.x;
 
-		//if (u == v == w)
-		//{
-		//	DeviceSetPixel(buffer, threadIndex, ConvertColorToDWORD(ColorRGBA(1.0f, 1.0f, 0.0f, 0.0f)));
-		//}
+		DeviceGetBarycentricAreas(threadId, c0, c1, c2, u, v, w);
+		
+
+		DeviceSetPixel(buffer, pixelId, ConvertColorToDWORD(ColorRGBA(1.0f, 1.0f, 0.0f, 0.0f)));
+
+		if (1.0f - (u + v + w) > 0.0f)
+		{
+		//	DeviceSetPixel(buffer, pixelId, ConvertColorToDWORD(ColorRGBA(1.0f, 1.0f, 0.0f, 0.0f)));
+		}
 
 		
 	}
@@ -808,13 +817,13 @@ __global__ void KernelGenerateTriangleBoundingTiles(dim3 tileGrid, dim3 rasteriz
 			{
 				return;
 			}
-
+			
 			Renderer::Tile* tile = &tiles[tileIndex];
+			unsigned int count = tile->Count;
+			count = atomicCAS(&tile->Count, count, count);
+			tile->Triangles[count] = tri;
+			atomicAdd(&tile->Count, 1);
 
-			if (tile != nullptr)
-			{
-				tile->Triangles.Add((void*)tri, sizeof(Renderer::Triangle*));
-			}
 		}
 	}
 
@@ -830,7 +839,14 @@ __global__ void KernelClearRasterizerBlocks(Renderer::Tile* tiles, unsigned int 
 	
 	threadIndex = blockIdx.y * blockDim.x + blockIdx.x;
 
-	tiles[threadIndex].Triangles.Clear();
+	Renderer::Tile* tile = &tiles[threadIndex];
+
+	for (size_t i = 0; i < tile->Count; i++)
+	{
+		tile->Triangles[i] = nullptr;
+	}
+
+	tile->Count = 0;
 
 	return;
 }
@@ -888,21 +904,17 @@ void Renderer::DrawTriangles(std::shared_ptr<DeviceBuffer> vertexBuffer,
 	unsigned int tileCount = mRasterizerGrid.x * mRasterizerGrid.y;
 	KernelGenerateTriangleBoundingTiles << <transformGrid, transformBlock >> >
 		(mRasterizerGrid, mRasterizerBlock, width, height, tileVirtual, tileCount, triangles, totalThread);
-//	cudaDeviceSynchronize();
-
-	//void* args[] = { (void*)&width, (void*)&height, (void*)&tileVirtual, (void*)&tileCount, (void*)&deviceRegisterManager, (void*)CAST_PIXEL(buffer), (void*)CAST_PIXEL(depth), (void*)&viewPos };
-	//cudaLaunchCooperativeKernel(KernelTileRasterize, mRasterizerGrid, mRasterizerBlock, args, 0, nullptr);
-	//std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
 
 	KernelTileRasterize <<<mRasterizerGrid, mRasterizerBlock>>>
 		(width, height, tileVirtual, tileCount, 
 			deviceRegisterManager, CAST_PIXEL(buffer), CAST_PIXEL(depth), viewPos);
 
-	//cudaDeviceSynchronize();
-	//std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
+	//cudaThreadSynchronize();
+	std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
 
 	KernelClearRasterizerBlocks << <clearGrid, clearBlock >> > (tileVirtual, tileCount);
-	//cudaDeviceSynchronize();
+	//cudaThreadSynchronize();
+	std::cout << cudaGetErrorString(cudaGetLastError()) << '\n';
 
 	//KernelRasterize << <rasterGrid, rasterBlock >> >
 	//	(deviceRegisterManager, CAST_PIXEL(buffer), CAST_PIXEL(depth),
