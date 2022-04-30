@@ -135,6 +135,9 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_52,sm_52</CodeGeneration>
+      <PtxAsOptionV>false</PtxAsOptionV>
+      <AdditionalOptions>-Xptxas="-v" %(AdditionalOptions)</AdditionalOptions>
+      <MaxRegCount>64</MaxRegCount>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
