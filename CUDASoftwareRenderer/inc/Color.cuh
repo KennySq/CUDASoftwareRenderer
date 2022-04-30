@@ -41,15 +41,17 @@ inline __device__ __host__ DWORD ConvertColorToDWORD(const ColorRGBA& color)
 
 inline __device__ __host__ ColorRGBA ConvertDWORDToColor(const DWORD& texel)
 {
+	const float inverseMaxChannel = 1.0f / 255.999f;
+
 	BYTE r = (texel >> 16);
 	BYTE g = (texel >> 8);
 	BYTE b = (texel >> 0);
 	BYTE a = (texel >> 24);
 
-	float x = r / 255.999f;
-	float y = g / 255.999f;
-	float z = b / 255.999f;
-	float w = a / 255.999f;
+	float x = r * inverseMaxChannel;
+	float y = g * inverseMaxChannel;
+	float z = b * inverseMaxChannel;
+	float w = a * inverseMaxChannel;
 
 	return ColorRGBA(x, y, z, w);
 }

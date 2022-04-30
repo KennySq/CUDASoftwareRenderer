@@ -33,7 +33,15 @@ __device__ __host__ inline void ClampClipSpace(INT2& point, unsigned int width, 
 	return;
 }
 
-__device__ __host__ inline void AdjustPointToScreen(INT2& point, unsigned int width, unsigned int height)
+__device__ __host__ inline void AdjustPointToScreen(INT2& point, float width, float height)
+{
+	point.x = (width - point.x) - 1;
+	point.y = (height - point.y) - 1;
+
+	return;
+}
+
+__device__ __host__ inline void AdjustPointToScreen(FLOAT2& point, float width, float height)
 {
 	point.x = (width - point.x) - 1;
 	point.y = (height - point.y) - 1;
@@ -43,10 +51,11 @@ __device__ __host__ inline void AdjustPointToScreen(INT2& point, unsigned int wi
 
 __device__ __host__ inline FLOAT3 HomogeneousToNDC(const FLOAT4& position)
 {
-	return FLOAT3(position.x / position.w, position.y / position.w, position.z / position.w);
+	float inverseW = 1.0f / position.w;
+	return FLOAT3(position.x * inverseW, position.y * inverseW, position.z * inverseW);
 }
 
-__device__ __host__ inline INT2 NDCToClipSpace(FLOAT3 ndc, unsigned int width, unsigned int height)
+__device__ __host__ inline INT2 NDCToClipSpace(const FLOAT3& ndc, unsigned int width, unsigned int height)
 {
 	INT2 pixelCoord = INT2(ndc.x * width / ndc.z, ndc.y * height / ndc.z);
 
@@ -55,11 +64,20 @@ __device__ __host__ inline INT2 NDCToClipSpace(FLOAT3 ndc, unsigned int width, u
 	return pixelCoord;
 }
 
+__device__ __host__ inline FLOAT2 NDCToClipSpace(const FLOAT3& ndc, float width, float height)
+{
+	FLOAT2 pixelCoord = FLOAT2(ndc.x * width / ndc.z, ndc.y * height / ndc.z);
+
+	AdjustPointToScreen(pixelCoord, width / 2.0f, height / 2.0f);
+
+	return pixelCoord;
+}
+
 __device__ __host__ inline INT2 NDCToScreen(float x, float y, unsigned int width, unsigned int height)
 {
-	INT2 point(x * width, y * height);
+	INT2 point(x * (float)width, y * (float)height);
 
-	AdjustPointToScreen(point, width/2, height/2);
+	AdjustPointToScreen(point, width * 0.5f, height * 0.5f);
 
 	return point;
 }
