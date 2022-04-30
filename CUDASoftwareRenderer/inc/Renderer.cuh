@@ -12,6 +12,8 @@ struct ColorRGBA;
 #include"DeviceMemory.cuh"
 #include"DeviceVector.cuh"
 
+#define MAX_TILE_CAPACITY 2048
+
 struct Renderer
 {
 public:
@@ -68,7 +70,7 @@ public:
 	struct Tile
 	{
 		__device__ Tile()
-			: Count(0), Capacity(1024)
+			: Count(0)
 		{
 
 		}
@@ -78,9 +80,8 @@ public:
 
 		}
 
-		Renderer::Triangle* Triangles[1024];
+		Renderer::Triangle* Triangles[MAX_TILE_CAPACITY];
 		unsigned int Count;
-		const unsigned int Capacity;
 	};
 
 
